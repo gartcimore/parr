@@ -5,8 +5,9 @@ After=docker.service
 
 [Service]
 Restart=always
-ExecStart=/usr/bin/docker compose -f /home/gart/arr/docker-compose.yml up
-ExecStop=/usr/bin/docker compose -f /home/gart/arr/docker-compose.yml down
+WorkingDirectory=%i
+ExecStart=/usr/bin/docker compose up
+ExecStop=/usr/bin/docker compose down
 
 [Install]
 WantedBy=default.target

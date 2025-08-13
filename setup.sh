@@ -57,6 +57,29 @@ prompt_with_default "Hostname for Traefik (your local domain):" "${HOSTNAME:-med
 
 echo ""
 echo "========================================="
+echo "Installation Type"
+echo "========================================="
+
+# Installation type selection
+echo -e "${BLUE}Choose installation type:${NC}"
+echo "1. Service (systemctl) - Recommended for production"
+echo "2. Regular Docker Stack - Manual docker-compose management"
+echo ""
+read -p "Enter choice (1 or 2) [default: 1]: " install_choice
+
+if [ -z "$install_choice" ] || [ "$install_choice" = "1" ]; then
+    NEW_INSTALL_TYPE="service"
+    echo -e "${GREEN}Selected: Service installation${NC}"
+elif [ "$install_choice" = "2" ]; then
+    NEW_INSTALL_TYPE="docker"
+    echo -e "${GREEN}Selected: Regular Docker Stack${NC}"
+else
+    echo -e "${YELLOW}Invalid choice. Defaulting to service installation.${NC}"
+    NEW_INSTALL_TYPE="service"
+fi
+
+echo ""
+echo "========================================="
 echo "Security Configuration"
 echo "========================================="
 
@@ -129,6 +152,7 @@ cat > .env << EOF
 TZ=$NEW_TZ
 MEDIA_DIR=$NEW_MEDIA_DIR
 DOCKER_CONFIG_DIR=$NEW_DOCKER_CONFIG_DIR
+INSTALL_TYPE=$NEW_INSTALL_TYPE
 
 # Traefik config
 HOSTNAME=$NEW_HOSTNAME
@@ -166,6 +190,47 @@ fi
 
 echo ""
 echo "========================================="
+echo "Service Installation"
+echo "========================================="
+
+# Handle service installation if selected
+if [ "$NEW_INSTALL_TYPE" = "service" ]; then
+    echo -e "${BLUE}Installing as systemd service...${NC}"
+    
+    # Check if arr.service exists
+    if [ ! -f "arr.service" ]; then
+        echo -e "${RED}Error: arr.service file not found!${NC}"
+        echo -e "${YELLOW}Continuing with setup, but service installation failed.${NC}"
+    else
+        # Get current directory path
+        CURRENT_DIR=$(pwd)
+        
+        # Copy service file to systemd directory as a template service
+        SERVICE_NAME="arr@$(basename "$CURRENT_DIR").service"
+        
+        if sudo cp arr.service "/etc/systemd/system/$SERVICE_NAME"; then
+            echo -e "${GREEN}Service file copied to /etc/systemd/system/$SERVICE_NAME${NC}"
+            
+            # Reload systemd and enable the service
+            if sudo systemctl daemon-reload && sudo systemctl enable "$SERVICE_NAME"; then
+                echo -e "${GREEN}Service enabled successfully!${NC}"
+                echo -e "${BLUE}You can now use:${NC}"
+                echo "  sudo systemctl start $SERVICE_NAME    # Start the service"
+                echo "  sudo systemctl stop $SERVICE_NAME     # Stop the service"
+                echo "  sudo systemctl status $SERVICE_NAME   # Check service status"
+            else
+                echo -e "${RED}Failed to enable service${NC}"
+            fi
+        else
+            echo -e "${RED}Failed to copy service file. Make sure you have sudo privileges.${NC}"
+        fi
+    fi
+else
+    echo -e "${BLUE}Skipping service installation (Docker stack mode selected)${NC}"
+fi
+
+echo ""
+echo "========================================="
 echo "Setup Complete!"
 echo "========================================="
 echo ""
@@ -176,11 +241,16 @@ echo "• Hostname: $NEW_HOSTNAME"
 echo "• Media Directory: $NEW_MEDIA_DIR"
 echo "• Downloads Directory: $DOWNLOADS_DIR"
 echo "• VPN Type: $NEW_VPN_TYPE"
+echo "• Installation Type: $NEW_INSTALL_TYPE"
 echo ""
 echo -e "${BLUE}Next steps:${NC}"
 echo "1. Review the generated .env file if needed"
 echo "2. Update your VPN credentials in .env if needed"
-echo "3. Run: docker-compose up -d"
+if [ "$NEW_INSTALL_TYPE" = "service" ]; then
+    echo "3. Start the service: sudo systemctl start arr@$(basename "$(pwd)")"
+else
+    echo "3. Run: docker-compose up -d"
+fi
 echo "4. Configure your local DNS to point $NEW_HOSTNAME to this machine's IP"
 echo ""
 echo -e "${GREEN}All directories have been created with proper permissions!${NC}"
