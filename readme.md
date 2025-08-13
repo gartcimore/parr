@@ -1,4 +1,4 @@
-# Docker Compose Media Server
+# Parr - Personal Arr stack
 
 A complete media server setup with Traefik reverse proxy, including Jellyfin, Sonarr, Radarr, Bazarr, Lidarr, Prowlarr, Jellyseer, Homarr, and qBittorrent with VPN support.
 
