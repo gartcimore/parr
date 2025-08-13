@@ -264,9 +264,9 @@ services:
         - "traefik.http.routers.homarr.rule=Host(`${HOSTNAME}`) && PathPrefix(`/homarr`)"
         - "traefik.http.routers.homarr.entrypoints=web"
         - "traefik.http.services.homarr.loadbalancer.server.port=7575"
-        - "traefik.http.middlewares.homarr-headers.headers.customrequestheaders.X-Forwarded-Proto=http"
-        - "traefik.http.middlewares.homarr-headers.headers.customrequestheaders.X-Forwarded-Host=${HOSTNAME}"
-        - "traefik.http.middlewares.homarr-headers.headers.customrequestheaders.X-Forwarded-For=127.0.0.1"
+        # - "traefik.http.middlewares.homarr-headers.headers.customrequestheaders.X-Forwarded-Proto=http"
+        # - "traefik.http.middlewares.homarr-headers.headers.customrequestheaders.X-Forwarded-Host=${HOSTNAME}"
+        # - "traefik.http.middlewares.homarr-headers.headers.customrequestheaders.X-Forwarded-For=127.0.0.1"
         - "traefik.http.middlewares.homarr-headers.headers.customrequestheaders.X-Forwarded-Prefix=/homarr"
         - "traefik.http.routers.homarr.middlewares=homarr-headers"
       restart: unless-stopped
