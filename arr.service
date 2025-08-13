@@ -1,0 +1,12 @@
+[Unit]
+Description=Arr stack
+Requires=docker.service
+After=docker.service
+
+[Service]
+Restart=always
+ExecStart=/usr/bin/docker compose -f /home/gart/arr/docker-compose.yml up
+ExecStop=/usr/bin/docker compose -f /home/gart/arr/docker-compose.yml down
+
+[Install]
+WantedBy=default.target
