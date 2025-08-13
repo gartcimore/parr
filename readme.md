@@ -86,15 +86,17 @@ Add to `C:\Windows\System32\drivers\etc\hosts`:
 Once configured, access your services at:
 
 - **Traefik Dashboard**: `http://localhost:8081`
-- **Jellyfin**: `http://your-hostname.local/jellyfin`
-- **Radarr**: `http://your-hostname.local/radarr`
-- **Sonarr**: `http://your-hostname.local/sonarr`
-- **Bazarr**: `http://your-hostname.local/bazarr`
-- **Lidarr**: `http://your-hostname.local/lidarr`
-- **Prowlarr**: `http://your-hostname.local/prowlarr`
-- **Jellyseer**: `http://your-hostname.local/jellyseer`
-- **Homarr**: `http://your-hostname.local/homarr`
-- **qBittorrent**: `http://your-hostname.local/qbittorrent`
+- **Jellyfin**: `http://your-hostname.local/jellyfin` ⚠️ *Needs verification*
+- **Radarr**: `http://your-hostname.local/radarr` ✅
+- **Sonarr**: `http://your-hostname.local/sonarr` ✅
+- **Bazarr**: `http://your-hostname.local/bazarr` ✅
+- **Lidarr**: `http://your-hostname.local/lidarr` ✅
+- **Prowlarr**: `http://your-hostname.local/prowlarr` ✅
+- **Jellyseer**: `http://your-hostname.local/jellyseer` ❌ *No reverse proxy support*
+- **Homarr**: `http://your-hostname.local/homarr` ❌ *Routing issues*
+- **qBittorrent**: `http://your-hostname.local/qbittorrent` ✅
+
+**Note**: Services marked with ❌ or ⚠️ may require additional configuration or have known issues with reverse proxy routing.
 
 ## Manual Configuration
 
@@ -249,6 +251,36 @@ Port forwarding is automatically configured for better torrent performance:
    ```
 
 After this setup, port forwarding will work correctly and qBittorrent will use the forwarded port from ProtonVPN automatically.
+
+### Configuring Base URLs for *arr Applications
+
+After starting the services, you need to configure the base URL for each *arr application to work properly with reverse proxy routing:
+
+1. **Access each service directly** using `http://localhost:PORT`:
+   - **Radarr**: `http://localhost:7878`
+   - **Sonarr**: `http://localhost:8989`
+   - **Bazarr**: `http://localhost:6767`
+   - **Lidarr**: `http://localhost:8686`
+   - **Prowlarr**: `http://localhost:9696`
+   - **Jellyfin**: `http://localhost:8096`
+
+2. **Configure Base URL** in each application:
+   - Go to **Settings** → **General** (for *arr apps)
+   - Find **URL Base** or **Base URL** setting
+   - Set it to the service path: `/radarr`, `/sonarr`, `/bazarr`, etc.
+   - **Save** and **restart** the service
+
+3. **For Jellyfin**:
+   - Go to **Dashboard** → **Networking**
+   - Set **Base URL** to `/jellyfin`
+   - Save and restart
+
+4. **Restart services** after configuration:
+   ```bash
+   docker-compose restart radarr sonarr bazarr lidarr prowlarr jellyfin
+   ```
+
+Once configured, the services will work properly through the reverse proxy at `http://your-hostname.local/servicename`.
 
 ### Troubleshooting VPN Issues
 

@@ -62,11 +62,10 @@ services:
       - "traefik.http.routers.prowlarr.rule=Host(`${HOSTNAME}`) && PathPrefix(`/prowlarr`)"
       - "traefik.http.routers.prowlarr.entrypoints=web"
       - "traefik.http.services.prowlarr.loadbalancer.server.port=9696"
-      - "traefik.http.middlewares.prowlarr-stripprefix.stripprefix.prefixes=/prowlarr"
       - "traefik.http.middlewares.prowlarr-headers.headers.customrequestheaders.X-Forwarded-Proto=http"
       - "traefik.http.middlewares.prowlarr-headers.headers.customrequestheaders.X-Forwarded-Host=${HOSTNAME}"
       - "traefik.http.middlewares.prowlarr-headers.headers.customrequestheaders.X-Forwarded-Prefix=/prowlarr"
-      - "traefik.http.routers.prowlarr.middlewares=prowlarr-headers,prowlarr-stripprefix"
+      - "traefik.http.routers.prowlarr.middlewares=prowlarr-headers"
     restart: unless-stopped
 
 ############################
@@ -91,12 +90,11 @@ services:
       - "traefik.http.routers.radarr.rule=Host(`${HOSTNAME}`) && PathPrefix(`/radarr`)"
       - "traefik.http.routers.radarr.entrypoints=web"
       - "traefik.http.services.radarr.loadbalancer.server.port=7878"
-      - "traefik.http.middlewares.radarr-stripprefix.stripprefix.prefixes=/radarr"
       - "traefik.http.middlewares.radarr-headers.headers.customrequestheaders.X-Forwarded-Proto=http"
       - "traefik.http.middlewares.radarr-headers.headers.customrequestheaders.X-Forwarded-Host=${HOSTNAME}"
       # - "traefik.http.middlewares.radarr-headers.headers.customrequestheaders.X-Forwarded-For=127.0.0.1"
       - "traefik.http.middlewares.radarr-headers.headers.customrequestheaders.X-Forwarded-Prefix=/radarr"
-      - "traefik.http.routers.radarr.middlewares=radarr-headers,radarr-stripprefix"
+      - "traefik.http.routers.radarr.middlewares=radarr-headers"
     restart: unless-stopped
 
 ############################
@@ -122,11 +120,10 @@ services:
       - "traefik.http.routers.sonarr.rule=Host(`${HOSTNAME}`) && PathPrefix(`/sonarr`)"
       - "traefik.http.routers.sonarr.entrypoints=web"
       - "traefik.http.services.sonarr.loadbalancer.server.port=8989"
-      - "traefik.http.middlewares.sonarr-stripprefix.stripprefix.prefixes=/sonarr"
       - "traefik.http.middlewares.sonarr-headers.headers.customrequestheaders.X-Forwarded-Proto=http"
       - "traefik.http.middlewares.sonarr-headers.headers.customrequestheaders.X-Forwarded-Host=${HOSTNAME}"
       - "traefik.http.middlewares.sonarr-headers.headers.customrequestheaders.X-Forwarded-Prefix=/sonarr"
-      - "traefik.http.routers.sonarr.middlewares=sonarr-headers,sonarr-stripprefix"
+      - "traefik.http.routers.sonarr.middlewares=sonarr-headers"
     restart: unless-stopped
 
 ############################
@@ -151,11 +148,10 @@ services:
       - "traefik.http.routers.bazarr.rule=Host(`${HOSTNAME}`) && PathPrefix(`/bazarr`)"
       - "traefik.http.routers.bazarr.entrypoints=web"
       - "traefik.http.services.bazarr.loadbalancer.server.port=6767"
-      - "traefik.http.middlewares.bazarr-stripprefix.stripprefix.prefixes=/bazarr"
       - "traefik.http.middlewares.bazarr-headers.headers.customrequestheaders.X-Forwarded-Proto=http"
       - "traefik.http.middlewares.bazarr-headers.headers.customrequestheaders.X-Forwarded-Host=${HOSTNAME}"
       - "traefik.http.middlewares.bazarr-headers.headers.customrequestheaders.X-Forwarded-Prefix=/bazarr"
-      - "traefik.http.routers.bazarr.middlewares=bazarr-headers,bazarr-stripprefix"
+      - "traefik.http.routers.bazarr.middlewares=bazarr-headers"
     restart: unless-stopped
 
 ############################
@@ -180,11 +176,10 @@ services:
       - "traefik.http.routers.lidarr.rule=Host(`${HOSTNAME}`) && PathPrefix(`/lidarr`)"
       - "traefik.http.routers.lidarr.entrypoints=web"
       - "traefik.http.services.lidarr.loadbalancer.server.port=8686"
-      - "traefik.http.middlewares.lidarr-stripprefix.stripprefix.prefixes=/lidarr"
       - "traefik.http.middlewares.lidarr-headers.headers.customrequestheaders.X-Forwarded-Proto=http"
       - "traefik.http.middlewares.lidarr-headers.headers.customrequestheaders.X-Forwarded-Host=${HOSTNAME}"
       - "traefik.http.middlewares.lidarr-headers.headers.customrequestheaders.X-Forwarded-Prefix=/lidarr"
-      - "traefik.http.routers.lidarr.middlewares=lidarr-headers,lidarr-stripprefix"
+      - "traefik.http.routers.lidarr.middlewares=lidarr-headers"
     restart: unless-stopped
 
 ############################
@@ -215,12 +210,11 @@ services:
       - "traefik.http.routers.jellyfin.rule=Host(`${HOSTNAME}`) && (PathPrefix(`/jellyfin`))"
       - "traefik.http.routers.jellyfin.entrypoints=web"
       - "traefik.http.services.jellyfin.loadbalancer.server.port=8096"
-      - "traefik.http.middlewares.jellyfin-stripprefix.stripprefix.prefixes=/jellyfin"
       - "traefik.http.middlewares.jellyfin-headers.headers.customrequestheaders.X-Forwarded-Proto=http"
       - "traefik.http.middlewares.jellyfin-headers.headers.customrequestheaders.X-Forwarded-Host=${HOSTNAME}"
       # - "traefik.http.middlewares.jellyfin-headers.headers.customrequestheaders.X-Forwarded-For=127.0.0.1"
       - "traefik.http.middlewares.jellyfin-headers.headers.customrequestheaders.X-Forwarded-Prefix=/jellyfin"
-      - "traefik.http.routers.jellyfin.middlewares=jellyfin-headers,jellyfin-stripprefix"
+      - "traefik.http.routers.jellyfin.middlewares=jellyfin-headers"
     restart: unless-stopped
 
 ############################
@@ -270,12 +264,11 @@ services:
         - "traefik.http.routers.homarr.rule=Host(`${HOSTNAME}`) && PathPrefix(`/homarr`)"
         - "traefik.http.routers.homarr.entrypoints=web"
         - "traefik.http.services.homarr.loadbalancer.server.port=7575"
-        - "traefik.http.middlewares.homarr-stripprefix.stripprefix.prefixes=/homarr"
         - "traefik.http.middlewares.homarr-headers.headers.customrequestheaders.X-Forwarded-Proto=http"
         - "traefik.http.middlewares.homarr-headers.headers.customrequestheaders.X-Forwarded-Host=${HOSTNAME}"
         - "traefik.http.middlewares.homarr-headers.headers.customrequestheaders.X-Forwarded-For=127.0.0.1"
         - "traefik.http.middlewares.homarr-headers.headers.customrequestheaders.X-Forwarded-Prefix=/homarr"
-        - "traefik.http.routers.homarr.middlewares=homarr-headers,homarr-stripprefix"
+        - "traefik.http.routers.homarr.middlewares=homarr-headers"
       restart: unless-stopped
 
 ############################
@@ -305,6 +298,8 @@ services:
       - VPN_PORT_FORWARDING=on
       - VPN_PORT_FORWARDING_UP_COMMAND=/bin/sh -c 'wget -O- --retry-connrefused --post-data "json={\"listen_port\":{{PORTS}}}" http://127.0.0.1:8080/api/v2/app/setPreferences 2>&1'
       - SERVER_COUNTRIES=${SERVER_COUNTRIES}
+      # - DOT=off
+      # - DNS_KEEP_NAMESERVER=on
     volumes:
       - ${DOCKER_CONFIG_DIR}/gluetun:/gluetun
     networks:
