@@ -1,6 +1,6 @@
 # Parr - Personal Arr stack
 
-A complete media server setup with Traefik reverse proxy, including Jellyfin, Sonarr, Radarr, Bazarr, Lidarr, Prowlarr, Jellyseer, Homarr, and qBittorrent with VPN support.
+A complete *arr stack/media server setup with [Traefik](https://github.com/traefik/traefik) reverse proxy, including [Jellyfin](https://github.com/jellyfin/jellyfin), [Sonarr](https://github.com/Sonarr/Sonarr), [Radarr](https://github.com/Radarr/Radarr), [Bazarr](https://github.com/morpheus65535/bazarr), [Lidarr](https://github.com/Lidarr/Lidarr), [Prowlarr](https://github.com/Prowlarr/Prowlarr), [Jellyseer](https://github.com/Fallenbagel/jellyseerr), [Homarr](https://github.com/ajnart/homarr), and [qBittorrent](https://github.com/qbittorrent/qBittorrent) with VPN support.
 
 ## Architecture Overview
 
@@ -55,18 +55,57 @@ flowchart TD
 
 This interactive script will:
 - Configure your timezone and hostname
+- **Choose installation type**: Service (systemctl) or Docker Stack
 - Set up directory paths for media and configs
 - Configure VPN settings for qBittorrent
 - Create necessary directories
 - Generate the `.env` file
+- **If Service mode**: Install and enable systemd service for automatic startup
+
+#### Installation Types:
+
+**Service Mode (Recommended)**:
+- Installs as a systemd service for automatic startup
+- Manages the stack with `systemctl` commands
+- Better for always-on setups
+- Automatically starts on system boot
+
+**Docker Stack Mode**:
+- Manual `docker-compose` management
+- Better for development or occasional use
+- More direct control over containers
 
 ### 2. Start the Services
 
+**For Service Installation**:
+```bash
+sudo systemctl start arr@<directory-name>
+# Example: sudo systemctl start arr@parr
+```
+
+**For Docker Stack Installation**:
 ```bash
 docker-compose up -d
 ```
 
-### 3. Configure Local DNS
+**Note**: The setup script will show you the exact commands to use based on your chosen installation type.
+
+### 3. Update the Stack
+
+To update all services to their latest versions:
+
+```bash
+./update.sh
+```
+
+This script will:
+- Detect your installation type automatically
+- Stop the services safely (systemctl or docker-compose)
+- Pull the latest Docker images
+- Restart all services
+- Perform health checks to ensure everything is running
+
+### 4. Configure Local DNS
 
 Add your hostname to your local DNS or hosts file:
 
@@ -133,7 +172,8 @@ The setup creates the following structure:
 
 ## VPN Configuration (Gluetun + ProtonVPN)
 
-This setup uses Gluetun with ProtonVPN to secure qBittorrent traffic. Follow these steps to configure your VPN:
+This setup uses Gluetun with ProtonVPN to secure qBittorrent traffic. All info based from [the_definitive_howto_for_setting_up_protonvpn on reddit](https://www.reddit.com/r/gluetun/comments/1kpbfs2/the_definitive_howto_for_setting_up_protonvpn/) from (u/sboger)[https://www.reddit.com/user/sboger/]. You need a proton plus account to use port forwarding.
+Follow these steps to configure your VPN: 
 
 ### 1. Get ProtonVPN Credentials
 
@@ -166,8 +206,11 @@ This setup uses Gluetun with ProtonVPN to secure qBittorrent traffic. Follow the
    ```bash
    VPN_TYPE=wireguard
    WIREGUARD_PRIVATE_KEY=your_actual_private_key_here
-   SERVER_COUNTRIES=Netherlands,Switzerland,Sweden  # Choose P2P-friendly countries
+   SERVER_COUNTRIES=Albania,Algeria,Angola,Argentina,Australia,Austria,Azerbaijan
+
    ```
+
+set SERVER_COUNTRIES to your preference. Run 'docker run --rm -v eraseme:/gluetun qmcgaw/gluetun format-servers -protonvpn' to get a list of server countries
 
 ### 3. Configure OpenVPN (Alternative)
 

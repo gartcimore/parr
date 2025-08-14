@@ -62,7 +62,7 @@ echo "========================================="
 
 # Installation type selection
 echo -e "${BLUE}Choose installation type:${NC}"
-echo "1. Service (systemctl) - Recommended for production"
+echo "1. Service (systemctl) - Recommended for always-on setup (linux only)"
 echo "2. Regular Docker Stack - Manual docker-compose management"
 echo ""
 read -p "Enter choice (1 or 2) [default: 1]: " install_choice
