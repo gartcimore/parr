@@ -73,7 +73,7 @@ echo "Basic Configuration"
 echo "========================================="
 
 # Basic config
-prompt_with_default "Timezone (e.g., America/New_York, Europe/Paris):" "${TZ:-America/New_York}" "NEW_TZ"
+prompt_with_default "Timezone (e.g., America/New_York, Europe/Paris):" "${TZ:-Europe/Paris}" "NEW_TZ"
 prompt_with_default "Docker config directory (where app configs will be stored):" "${DOCKER_CONFIG_DIR:-/docker/appdata}" "NEW_DOCKER_CONFIG_DIR"
 prompt_with_default "Hostname for Traefik (your local domain):" "${HOSTNAME:-media.local}" "NEW_HOSTNAME"
 
