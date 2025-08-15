@@ -129,18 +129,8 @@ echo "========================================="
 
 prompt_with_default "Primary data directory (for media, downloads, etc.):" "${DATA_DIR:-/data}" "NEW_DATA_DIR"
 
-# Ask about additional mount points
-echo ""
-echo -e "${BLUE}Do you have additional storage locations? (y/n)${NC}"
-read -p "Answer: " additional_storage
-
-if [[ $additional_storage =~ ^[Yy]$ ]]; then
-    prompt_with_default "Secondary data directory (optional):" "/mnt/data" "SECONDARY_DATA_DIR"
-    prompt_with_default "Downloads directory:" "/mnt/dataYmir/downloads" "DOWNLOADS_DIR"
-else
-    SECONDARY_DATA_DIR=""
-    DOWNLOADS_DIR="${NEW_DATA_DIR}/torrents"
-fi
+# Set downloads directory
+DOWNLOADS_DIR="${NEW_DATA_DIR}/torrents"
 
 echo ""
 echo "========================================="
