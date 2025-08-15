@@ -5,56 +5,23 @@
 
 set -e
 
+# Load utility functions
+if [ -f "setup-utils.sh" ]; then
+    source setup-utils.sh
+else
+    echo "Error: setup-utils.sh not found!"
+    echo "Please ensure setup-utils.sh is in the same directory as setup.sh"
+    exit 1
+fi
+
 echo "========================================="
 echo "Docker Compose Media Server Setup"
 echo "========================================="
 echo ""
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
 
-# Function to prompt for input with default value
-prompt_with_default() {
-    local prompt="$1"
-    local default="$2"
-    local var_name="$3"
-    
-    echo -e "${BLUE}$prompt${NC}"
-    echo -e "${YELLOW}Current/Default: $default${NC}"
-    read -p "Enter value (or press Enter for default): " input
-    
-    if [ -z "$input" ]; then
-        eval "$var_name='$default'"
-    else
-        eval "$var_name='$input'"
-    fi
-}
 
-# Function to safely load environment variables from file
-load_env_file() {
-    local file="$1"
-    if [ -f "$file" ]; then
-        # Read variables safely, ignoring comments and empty lines
-        while IFS='=' read -r key value; do
-            # Skip comments and empty lines
-            [[ $key =~ ^[[:space:]]*# ]] && continue
-            [[ -z $key ]] && continue
-            
-            # Remove leading/trailing whitespace and quotes
-            key=$(echo "$key" | xargs)
-            value=$(echo "$value" | xargs | sed 's/^["'\'']//' | sed 's/["'\'']*$//')
-            
-            # Export the variable
-            if [ -n "$key" ] && [ -n "$value" ]; then
-                export "$key"="$value"
-            fi
-        done < "$file"
-    fi
-}
+
 
 # Read current values from .env if it exists
 if [ -f ".env" ]; then
@@ -140,15 +107,30 @@ echo "========================================="
 prompt_with_default "VPN Type (wireguard or openvpn):" "${VPN_TYPE:-wireguard}" "NEW_VPN_TYPE"
 prompt_with_default "VPN Server Countries (comma-separated):" "${SERVER_COUNTRIES:-United States,Canada,United Kingdom}" "NEW_SERVER_COUNTRIES"
 
-if [[ $NEW_VPN_TYPE == "openvpn" ]]; then
-    prompt_with_default "OpenVPN Username:" "${OPENVPN_USER:-your_username+pmp}" "NEW_OPENVPN_USER"
-    prompt_with_default "OpenVPN Password:" "${OPENVPN_PASSWORD:-your_password}" "NEW_OPENVPN_PASSWORD"
-    NEW_WIREGUARD_PRIVATE_KEY="${WIREGUARD_PRIVATE_KEY:-your_wireguard_private_key_here}"
+echo ""
+echo -e "${BLUE}VPN Credentials Configuration:${NC}"
+echo -e "${YELLOW}You can configure these now or skip and set them later in the .env file${NC}"
+echo ""
+
+# Always ask for OpenVPN credentials (can be skipped)
+echo -e "${BLUE}OpenVPN Credentials (for ProtonVPN):${NC}"
+prompt_optional "OpenVPN Username (format: username+pmp):" "NEW_OPENVPN_USER" "${OPENVPN_USER}"
+prompt_optional "OpenVPN Password:" "NEW_OPENVPN_PASSWORD" "${OPENVPN_PASSWORD}"
+
+# Ask for WireGuard key based on VPN type or always
+if [[ $NEW_VPN_TYPE == "wireguard" ]]; then
+    echo ""
+    echo -e "${BLUE}WireGuard Configuration:${NC}"
+    prompt_optional "WireGuard Private Key:" "NEW_WIREGUARD_PRIVATE_KEY" "${WIREGUARD_PRIVATE_KEY}"
 else
-    prompt_with_default "WireGuard Private Key:" "${WIREGUARD_PRIVATE_KEY:-your_wireguard_private_key_here}" "NEW_WIREGUARD_PRIVATE_KEY"
-    NEW_OPENVPN_USER="${OPENVPN_USER:-your_username+pmp}"
-    NEW_OPENVPN_PASSWORD="${OPENVPN_PASSWORD:-your_password}"
+    # Keep existing WireGuard key if any
+    NEW_WIREGUARD_PRIVATE_KEY="${WIREGUARD_PRIVATE_KEY:-your_wireguard_private_key_here}"
 fi
+
+# Set default placeholders if values are empty
+NEW_OPENVPN_USER="${NEW_OPENVPN_USER:-your_username+pmp}"
+NEW_OPENVPN_PASSWORD="${NEW_OPENVPN_PASSWORD:-your_password}"
+NEW_WIREGUARD_PRIVATE_KEY="${NEW_WIREGUARD_PRIVATE_KEY:-your_wireguard_private_key_here}"
 
 echo ""
 echo "========================================="

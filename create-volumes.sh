@@ -35,25 +35,53 @@ if [ ! -f ".env" ]; then
     exit 1
 fi
 
-# Source the .env file to get variables
-print_status "Loading environment variables from .env file..."
-source .env
+# Function to safely load environment variables from file
+load_env_file() {
+    local file="$1"
+    if [ -f "$file" ]; then
+        # Read variables safely, ignoring comments and empty lines
+        while IFS='=' read -r key value; do
+            # Skip comments and empty lines
+            [[ $key =~ ^[[:space:]]*# ]] && continue
+            [[ -z $key ]] && continue
+            
+            # Remove leading/trailing whitespace and quotes
+            key=$(echo "$key" | xargs)
+            value=$(echo "$value" | xargs | sed 's/^["'\'']//' | sed 's/["'\'']*$//')
+            
+            # Export the variable
+            if [ -n "$key" ] && [ -n "$value" ]; then
+                export "$key"="$value"
+            fi
+        done < "$file"
+    fi
+}
 
-# Check if DOCKER_CONFIG_DIR is set
+# Load environment variables from .env file
+print_status "Loading environment variables from .env file..."
+load_env_file ".env"
+
+# Check if required variables are set
 if [ -z "$DOCKER_CONFIG_DIR" ]; then
     print_error "DOCKER_CONFIG_DIR not set in .env file!"
     exit 1
 fi
 
+if [ -z "$DATA_DIR" ]; then
+    print_error "DATA_DIR not set in .env file!"
+    exit 1
+fi
+
 print_status "Using DOCKER_CONFIG_DIR: $DOCKER_CONFIG_DIR"
+print_status "Using DATA_DIR: $DATA_DIR"
 
 # Function to create directory with proper permissions
 create_directory() {
     local dir_path="$1"
-    local service_name="$2"
+    local description="$2"
     
     if [ ! -d "$dir_path" ]; then
-        print_status "Creating directory for $service_name: $dir_path"
+        print_status "Creating directory: $dir_path ($description)"
         
         # Try to create directory (with or without sudo)
         if mkdir -p "$dir_path" 2>/dev/null; then
@@ -73,30 +101,6 @@ create_directory() {
     fi
 }
 
-# Function to create media directories
-create_media_directory() {
-    local dir_path="$1"
-    local description="$2"
-    
-    if [ ! -d "$dir_path" ]; then
-        print_status "Creating media directory: $dir_path ($description)"
-        
-        # Try to create directory (with or without sudo)
-        if mkdir -p "$dir_path" 2>/dev/null; then
-            print_success "Created: $dir_path"
-        elif sudo mkdir -p "$dir_path" 2>/dev/null; then
-            print_success "Created (with sudo): $dir_path"
-            sudo chown 1000:1000 "$dir_path" 2>/dev/null || print_warning "Could not set ownership for $dir_path"
-            sudo chmod 755 "$dir_path" 2>/dev/null || print_warning "Could not set permissions for $dir_path"
-        else
-            print_error "Could not create directory: $dir_path"
-            print_warning "You may need to create this directory manually with appropriate permissions"
-        fi
-    else
-        print_warning "Media directory already exists: $dir_path"
-    fi
-}
-
 print_status "Starting directory creation process..."
 
 # Create service config directories
@@ -113,55 +117,43 @@ create_directory "$DOCKER_CONFIG_DIR/homarr" "Homarr"
 create_directory "$DOCKER_CONFIG_DIR/gluetun" "Gluetun"
 create_directory "$DOCKER_CONFIG_DIR/qbittorent" "qBittorrent"
 
-# Create media directories based on .env configuration
-print_status "Creating media directories..."
+# Create data directories based on .env configuration
+print_status "Creating data directories..."
 
-# Use MEDIA_DIR from .env if set, otherwise use default
-MEDIA_BASE="${MEDIA_DIR:-/media}"
-create_media_directory "$MEDIA_BASE" "Main media directory"
+# Create main data directory
+create_directory "$DATA_DIR" "Main data directory"
 
-# Create downloads directory
-DOWNLOADS_BASE="${DOWNLOADS_DIR:-$MEDIA_BASE/downloads}"
-create_media_directory "$DOWNLOADS_BASE" "qBittorrent downloads"
+# Create torrent directories
+print_status "Creating torrent directories..."
+create_directory "$DATA_DIR/torrents" "Torrent downloads"
+create_directory "$DATA_DIR/torrents/books" "Torrent books"
+create_directory "$DATA_DIR/torrents/movies" "Torrent movies"
+create_directory "$DATA_DIR/torrents/music" "Torrent music"
+create_directory "$DATA_DIR/torrents/tv" "Torrent TV shows"
 
-# Create downloads subdirectories
-create_media_directory "$DOWNLOADS_BASE/complete" "Completed downloads"
-create_media_directory "$DOWNLOADS_BASE/incomplete" "Incomplete downloads"
+# Create usenet directories
+print_status "Creating usenet directories..."
+create_directory "$DATA_DIR/usenet" "Usenet downloads"
+create_directory "$DATA_DIR/usenet/incomplete" "Usenet incomplete downloads"
+create_directory "$DATA_DIR/usenet/complete" "Usenet complete downloads"
+create_directory "$DATA_DIR/usenet/complete/books" "Usenet books"
+create_directory "$DATA_DIR/usenet/complete/movies" "Usenet movies"
+create_directory "$DATA_DIR/usenet/complete/music" "Usenet music"
+create_directory "$DATA_DIR/usenet/complete/tv" "Usenet TV shows"
 
-# Create additional mount points if they exist in the docker-compose file
-if [ -d "/mnt/dataYmir" ] || grep -q "/mnt/dataYmir" ../docker-compose.yml 2>/dev/null; then
-    create_media_directory "/mnt/dataYmir" "Main data mount (Ymir)"
-    create_media_directory "/mnt/dataYmir/media" "Jellyfin media (Ymir)"
-    create_media_directory "/mnt/dataYmir/downloads" "Downloads (Ymir)"
-fi
-
-if [ -d "/mnt/data" ] || grep -q "/mnt/data" ../docker-compose.yml 2>/dev/null; then
-    create_media_directory "/mnt/data" "Secondary data mount (Drogo)"
-    create_media_directory "/mnt/data/media" "Jellyfin media (Drogo)"
-fi
-
-# Create subdirectories for organized media
-print_status "Creating organized media subdirectories..."
-
-# Jellyfin media structure
-create_media_directory "/mnt/dataYmir/media/movies" "Movies directory"
-create_media_directory "/mnt/dataYmir/media/tv" "TV Shows directory"
-create_media_directory "/mnt/dataYmir/media/music" "Music directory"
-
-create_media_directory "/mnt/data/media/movies" "Movies directory (Drogo)"
-create_media_directory "/mnt/data/media/tv" "TV Shows directory (Drogo)"
-create_media_directory "/mnt/data/media/music" "Music directory (Drogo)"
-
-# Download organization
-create_media_directory "/mnt/dataYmir/downloads/complete" "Completed downloads"
-create_media_directory "/mnt/dataYmir/downloads/incomplete" "Incomplete downloads"
+# Create final media directories
+print_status "Creating final media directories..."
+create_directory "$DATA_DIR/media" "Final media storage"
+create_directory "$DATA_DIR/media/books" "Books library"
+create_directory "$DATA_DIR/media/movies" "Movies library"
+create_directory "$DATA_DIR/media/music" "Music library"
+create_directory "$DATA_DIR/media/tv" "TV shows library"
 
 print_status "Setting up directory permissions..."
 
 # Ensure proper permissions for all created directories
 sudo chown -R 1000:1000 "$DOCKER_CONFIG_DIR" 2>/dev/null || print_warning "Could not change ownership of $DOCKER_CONFIG_DIR"
-sudo chown -R 1000:1000 "/mnt/dataYmir" 2>/dev/null || print_warning "Could not change ownership of /mnt/dataYmir"
-sudo chown -R 1000:1000 "/mnt/data" 2>/dev/null || print_warning "Could not change ownership of /mnt/data"
+sudo chown -R 1000:1000 "$DATA_DIR" 2>/dev/null || print_warning "Could not change ownership of $DATA_DIR"
 
 print_success "All directories created successfully!"
 
@@ -180,11 +172,14 @@ echo "  • Homarr:      $DOCKER_CONFIG_DIR/homarr"
 echo "  • Gluetun:     $DOCKER_CONFIG_DIR/gluetun"
 echo "  • qBittorrent: $DOCKER_CONFIG_DIR/qbittorent"
 echo ""
-echo "Media Directories:"
-echo "  • Main Data:   /mnt/dataYmir"
-echo "  • Media:       /mnt/dataYmir/media"
-echo "  • Downloads:   /mnt/dataYmir/downloads"
+echo "Data Directories:"
+echo "  • Main Data:   $DATA_DIR"
+echo "  • Torrents:    $DATA_DIR/torrents/{books,movies,music,tv}"
+echo "  • Usenet:      $DATA_DIR/usenet/{incomplete,complete}"
+echo "  • Media:       $DATA_DIR/media/{books,movies,music,tv}"
+if [ -d "/mnt/data" ]; then
 echo "  • Secondary:   /mnt/data/media"
+fi
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 print_success "Volume creation script completed!"
