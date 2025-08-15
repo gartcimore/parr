@@ -217,24 +217,43 @@ if [ "$NEW_INSTALL_TYPE" = "service" ]; then
         # Get current directory path
         CURRENT_DIR=$(pwd)
         
-        # Copy service file to systemd directory as a template service
-        SERVICE_NAME="arr@$(basename "$CURRENT_DIR").service"
+        # Create service file with correct WorkingDirectory
+        cat > arr.service.tmp << EOF
+[Unit]
+Description=Arr stack
+Requires=docker.service
+After=docker.service
+
+[Service]
+Restart=always
+WorkingDirectory=$CURRENT_DIR
+ExecStart=/usr/bin/docker compose up
+ExecStop=/usr/bin/docker compose down
+
+[Install]
+WantedBy=default.target
+EOF
         
-        if sudo cp arr.service "/etc/systemd/system/$SERVICE_NAME"; then
-            echo -e "${GREEN}Service file copied to /etc/systemd/system/$SERVICE_NAME${NC}"
+        # Copy service file to systemd directory
+        if sudo cp arr.service.tmp /etc/systemd/system/arr.service; then
+            echo -e "${GREEN}Service file copied to /etc/systemd/system/arr.service${NC}"
+            
+            # Clean up temporary file
+            rm arr.service.tmp
             
             # Reload systemd and enable the service
-            if sudo systemctl daemon-reload && sudo systemctl enable "$SERVICE_NAME"; then
+            if sudo systemctl daemon-reload && sudo systemctl enable arr.service; then
                 echo -e "${GREEN}Service enabled successfully!${NC}"
                 echo -e "${BLUE}You can now use:${NC}"
-                echo "  sudo systemctl start $SERVICE_NAME    # Start the service"
-                echo "  sudo systemctl stop $SERVICE_NAME     # Stop the service"
-                echo "  sudo systemctl status $SERVICE_NAME   # Check service status"
+                echo "  sudo systemctl start arr    # Start the service"
+                echo "  sudo systemctl stop arr     # Stop the service"
+                echo "  sudo systemctl status arr   # Check service status"
             else
                 echo -e "${RED}Failed to enable service${NC}"
             fi
         else
             echo -e "${RED}Failed to copy service file. Make sure you have sudo privileges.${NC}"
+            rm -f arr.service.tmp
         fi
     fi
 else
@@ -259,7 +278,7 @@ echo -e "${BLUE}Next steps:${NC}"
 echo "1. Review the generated .env file if needed"
 echo "2. Update your VPN credentials in .env if needed"
 if [ "$NEW_INSTALL_TYPE" = "service" ]; then
-    echo "3. Start the service: sudo systemctl start arr@$(basename "$(pwd)")"
+    echo "3. Start the service: sudo systemctl start arr"
 else
     echo "3. Run: docker-compose up -d"
 fi
