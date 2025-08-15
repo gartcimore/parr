@@ -34,14 +34,36 @@ prompt_with_default() {
     fi
 }
 
+# Function to safely load environment variables from file
+load_env_file() {
+    local file="$1"
+    if [ -f "$file" ]; then
+        # Read variables safely, ignoring comments and empty lines
+        while IFS='=' read -r key value; do
+            # Skip comments and empty lines
+            [[ $key =~ ^[[:space:]]*# ]] && continue
+            [[ -z $key ]] && continue
+            
+            # Remove leading/trailing whitespace and quotes
+            key=$(echo "$key" | xargs)
+            value=$(echo "$value" | xargs | sed 's/^["'\'']//' | sed 's/["'\'']*$//')
+            
+            # Export the variable
+            if [ -n "$key" ] && [ -n "$value" ]; then
+                export "$key"="$value"
+            fi
+        done < "$file"
+    fi
+}
+
 # Read current values from .env if it exists
 if [ -f ".env" ]; then
     echo -e "${GREEN}Found existing .env file. Loading current values...${NC}"
-    source .env
+    load_env_file ".env"
 else
     echo -e "${YELLOW}No existing .env file found. Using defaults from .env.sample...${NC}"
     if [ -f ".env.sample" ]; then
-        source .env.sample
+        load_env_file ".env.sample"
     fi
 fi
 
