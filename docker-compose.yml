@@ -80,7 +80,7 @@ services:
       - TZ=${TZ}
     volumes:
       - ${DOCKER_CONFIG_DIR}/radarr:/config
-      - /mnt/dataYmir/:/data 
+      - ${DATA_DIR}/:/data
     ports:
       - 7878:7878
     networks:
@@ -109,8 +109,8 @@ services:
       - TZ=${TZ}
     volumes:
       - ${DOCKER_CONFIG_DIR}/sonarr:/config
-      - /mnt/dataYmir/:/data
-      - /mnt/data/:/dataDrogo
+      - ${DATA_DIR}/:/data
+      - /mnt/data/:/dataDrogo #optional, I have two shared directory for tv
     ports:
       - 8989:8989
     networks:
@@ -138,7 +138,7 @@ services:
       - TZ=${TZ}
     volumes:
       - ${DOCKER_CONFIG_DIR}/bazarr:/config
-      - /mnt/dataYmir/:/data
+      - ${DATA_DIR}/:/data
     ports:
       - 6767:6767
     networks:
@@ -166,7 +166,7 @@ services:
       - TZ=${TZ}
     volumes:
       - ${DOCKER_CONFIG_DIR}/lidarr:/config
-      - /mnt/dataYmir/:/data 
+      - ${DATA_DIR}/:/data
     ports:
       - 8686:8686
     networks:
@@ -196,7 +196,7 @@ services:
       - JELLYFIN_PublishedServerUrl=http://${HOSTNAME}/jellyfin
     volumes:
       - ${DOCKER_CONFIG_DIR}/jellyfin:/config
-      - /mnt/dataYmir/media:/mediaYmir
+      - ${DATA_DIR}/media:/mediaYmir
       - /mnt/data/media:/mediaDrogo
     ports:
       - 8096:8096
@@ -330,7 +330,7 @@ services:
       - WEBUI_PORT=8080
     volumes:
       - ${DOCKER_CONFIG_DIR}/qbittorent:/config
-      - ${MEDIA_DIR}/downloads:/downloads
+      - ${DATA_DIR}/downloads:/downloads
     restart: unless-stopped
     network_mode: "service:gluetun"
 

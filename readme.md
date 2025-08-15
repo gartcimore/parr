@@ -56,7 +56,7 @@ flowchart TD
 This interactive script will:
 - Configure your timezone and hostname
 - **Choose installation type**: Service (systemctl) or Docker Stack
-- Set up directory paths for media and configs
+- Set up directory paths for data and configs
 - Configure VPN settings for qBittorrent
 - Create necessary directories
 - Generate the `.env` file
@@ -150,6 +150,7 @@ If you prefer manual setup:
 
 The setup creates the following structure:
 
+### Configuration Directory
 ```
 /your-config-dir/
 ├── prowlarr/
@@ -162,13 +163,36 @@ The setup creates the following structure:
 ├── homarr/
 ├── gluetun/
 └── qbittorent/
-
-/your-media-dir/
-├── movies/
-├── tv/
-├── music/
-└── downloads/
 ```
+
+### Data Directory
+```
+/your-data-dir/
+├── torrents
+│   ├── books
+│   ├── movies
+│   ├── music
+│   └── tv
+├── usenet
+│   ├── incomplete
+│   └── complete
+│       ├── books
+│       ├── movies
+│       ├── music
+│       └── tv
+└── media
+    ├── books
+    ├── movies
+    ├── music
+    └── tv
+```
+
+**Directory Purpose:**
+- **torrents/**: Download location for torrent clients (qBittorrent)
+- **usenet/**: Download locations for usenet clients (SABnzbd, NZBGet)
+  - **incomplete/**: Temporary files during download
+  - **complete/**: Completed downloads before processing
+- **media/**: Final organized media files for consumption (Jellyfin, Plex, etc.)
 
 ## VPN Configuration (Gluetun + ProtonVPN)
 

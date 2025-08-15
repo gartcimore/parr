@@ -127,7 +127,7 @@ echo "========================================="
 echo "Media Storage Paths"
 echo "========================================="
 
-prompt_with_default "Primary media directory (for movies, TV shows, etc.):" "${MEDIA_DIR:-/media}" "NEW_MEDIA_DIR"
+prompt_with_default "Primary data directory (for media, downloads, etc.):" "${DATA_DIR:-/data}" "NEW_DATA_DIR"
 
 # Ask about additional mount points
 echo ""
@@ -139,7 +139,7 @@ if [[ $additional_storage =~ ^[Yy]$ ]]; then
     prompt_with_default "Downloads directory:" "/mnt/dataYmir/downloads" "DOWNLOADS_DIR"
 else
     SECONDARY_DATA_DIR=""
-    DOWNLOADS_DIR="${NEW_MEDIA_DIR}/downloads"
+    DOWNLOADS_DIR="${NEW_DATA_DIR}/torrents"
 fi
 
 echo ""
@@ -172,7 +172,7 @@ cat > .env << EOF
 
 # Base config
 TZ=$NEW_TZ
-MEDIA_DIR=$NEW_MEDIA_DIR
+DATA_DIR=$NEW_DATA_DIR
 DOCKER_CONFIG_DIR=$NEW_DOCKER_CONFIG_DIR
 INSTALL_TYPE=$NEW_INSTALL_TYPE
 
@@ -260,7 +260,7 @@ echo -e "${GREEN}Your media server is now configured with:${NC}"
 echo "• Timezone: $NEW_TZ"
 echo "• Config Directory: $NEW_DOCKER_CONFIG_DIR"
 echo "• Hostname: $NEW_HOSTNAME"
-echo "• Media Directory: $NEW_MEDIA_DIR"
+echo "• Data Directory: $NEW_DATA_DIR"
 echo "• Downloads Directory: $DOWNLOADS_DIR"
 echo "• VPN Type: $NEW_VPN_TYPE"
 echo "• Installation Type: $NEW_INSTALL_TYPE"
