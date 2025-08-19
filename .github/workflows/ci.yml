@@ -17,7 +17,8 @@ jobs:
       uses: actions/checkout@v4
     
     - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v4    
+      uses: docker/setup-buildx-action@v3
+    
     - name: Install Docker Compose
       run: |
         # Install docker-compose for compatibility
@@ -42,7 +43,8 @@ jobs:
       uses: actions/checkout@v4
     
     - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v4
+      uses: docker/setup-buildx-action@v3
+    
     - name: Install Docker Compose
       run: |
         # Install docker-compose for compatibility
@@ -110,7 +112,7 @@ jobs:
       uses: actions/checkout@v4
     
     - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v4
+      uses: docker/setup-buildx-action@v3
     
     - name: Install Docker Compose
       run: |
