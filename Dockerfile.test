@@ -1,0 +1,37 @@
+FROM docker:27-cli
+
+# Install additional tools needed for testing
+RUN apk add --no-cache \
+    bash \
+    curl \
+    grep \
+    sed \
+    jq \
+    git \
+    openssl \
+    findutils \
+    coreutils \
+    util-linux \
+    docker-compose
+
+# Install Docker Compose v2 plugin
+RUN mkdir -p ~/.docker/cli-plugins/ \
+    && curl -SL https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64 -o ~/.docker/cli-plugins/docker-compose \
+    && chmod +x ~/.docker/cli-plugins/docker-compose
+
+# Create a non-root user for testing
+RUN addgroup -g 1000 testuser && \
+    adduser -D -s /bin/bash -u 1000 -G testuser testuser
+
+# Set working directory
+WORKDIR /workspace
+
+# Create test output directories with proper permissions
+RUN mkdir -p /tmp/test-config /tmp/test-data /tmp/test-setup-config /tmp/test-setup-data /tmp/test-output && \
+    chown -R testuser:testuser /tmp/test-*
+
+# Switch to non-root user
+USER testuser
+
+# Set default command
+CMD ["./tests/run-all-tests.sh"]

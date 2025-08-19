@@ -1,0 +1,23 @@
+name: Update Test Status Badge
+
+on:
+  workflow_run:
+    workflows: ["Infrastructure & Configuration Tests"]
+    types:
+      - completed
+
+jobs:
+  update-badge:
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion != 'cancelled'
+    
+    steps:
+    - name: Update Badge
+      uses: schneegans/dynamic-badges-action@v1.6.0
+      with:
+        auth: ${{ secrets.GITHUB_TOKEN }}
+        gistID: ${{ secrets.BADGE_GIST_ID }}
+        filename: parr-tests.json
+        label: Tests
+        message: ${{ github.event.workflow_run.conclusion == 'success' && 'passing' || 'failing' }}
+        color: ${{ github.event.workflow_run.conclusion == 'success' && 'brightgreen' || 'red' }}
