@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  test-runner:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    container_name: parr-test-runner
+    volumes:
+      # Mount the entire project for testing
+      - .:/workspace:ro
+      # Mount test output directories (writable)
+      - ./test-output/config:/tmp/test-config
+      - ./test-output/data:/tmp/test-data
+      - ./test-output/setup-config:/tmp/test-setup-config
+      - ./test-output/setup-data:/tmp/test-setup-data
+      # Mount Docker socket for Docker Compose testing
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - DOCKER_HOST=unix:///var/run/docker.sock
+    working_dir: /workspace
+    command: ./tests/run-all-tests.sh
+
+  # Lightweight test environment for quick validation
+  test-validation:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    container_name: parr-test-validation
+    volumes:
+      - .:/workspace:ro
+      - ./test-output/validation:/tmp/test-output
+    working_dir: /workspace
+    command: ./tests/test-env-validation.sh
+
+  # Docker Compose specific testing
+  test-compose:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    container_name: parr-test-compose
+    volumes:
+      - .:/workspace:ro
+      - ./test-output/compose:/tmp/test-output
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - DOCKER_HOST=unix:///var/run/docker.sock
+    working_dir: /workspace
+    command: ./tests/test-docker-compose.sh
+
+  # Setup scripts testing with volume inspection
+  test-setup:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    container_name: parr-test-setup
+    volumes:
+      - .:/workspace:ro
+      - ./test-output/setup:/tmp/test-output
+      - ./test-output/setup-config:/tmp/test-setup-config
+      - ./test-output/setup-data:/tmp/test-setup-data
+    working_dir: /workspace
+    command: ./tests/test-setup-scripts.sh
