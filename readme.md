@@ -2,6 +2,7 @@
 
 A complete *arr stack/media server setup with [Traefik](https://github.com/traefik/traefik) reverse proxy, including [Jellyfin](https://github.com/jellyfin/jellyfin), [Sonarr](https://github.com/Sonarr/Sonarr), [Radarr](https://github.com/Radarr/Radarr), [Bazarr](https://github.com/morpheus65535/bazarr), [Lidarr](https://github.com/Lidarr/Lidarr), [Prowlarr](https://github.com/Prowlarr/Prowlarr), [Jellyseer](https://github.com/Fallenbagel/jellyseerr), [Homarr](https://github.com/ajnart/homarr), and [qBittorrent](https://github.com/qbittorrent/qBittorrent) with VPN support.
 
+![badge](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/gartcimore/ebd5c4dd2c3996befd2d110c070c9cc4/raw/test.json)
 ## Architecture Overview
 
 ```mermaid
