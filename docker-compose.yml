@@ -305,7 +305,7 @@ services:
     networks:
       - traefik
     labels:
-      - "traefik.enable=true"
+    #  - "traefik.enable=true"
       - "traefik.http.routers.qbittorrent.rule=Host(`${HOSTNAME}`) && PathPrefix(`/qbittorrent`)"
       - "traefik.http.routers.qbittorrent.entrypoints=web"
       - "traefik.http.services.qbittorrent.loadbalancer.server.port=8080"
