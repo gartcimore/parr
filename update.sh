@@ -86,7 +86,7 @@ wait_for_health() {
 # Main update logic
 if [ "$INSTALL_TYPE" = "service" ]; then
     # Service mode
-    SERVICE_NAME="arr@$(basename "$(pwd)")"
+    SERVICE_NAME="arr"
     
     echo "========================================="
     echo "Updating Service Installation"
