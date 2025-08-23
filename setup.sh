@@ -14,6 +14,109 @@ else
     exit 1
 fi
 
+# Function to generate qBittorrent configuration
+generate_qbittorrent_categories() {
+    local tv_category="$1"
+    local movie_category="$2"
+    local music_category="$3"
+    local config_dir="$4"
+    local data_dir="$5"
+    
+    echo -e "${BLUE}Generating qBittorrent configuration...${NC}"
+    
+    # Create qBittorrent config directory if it doesn't exist
+    local qbt_config_dir="$config_dir/qbittorrent/qBittorrent"
+    mkdir -p "$qbt_config_dir"
+    
+    # Create categories.json file
+    local categories_file="$qbt_config_dir/categories.json"
+    
+    cat > "$categories_file" << EOF
+{
+    "$tv_category": {
+        "save_path": "$data_dir/torrents/tv"
+    },
+    "$movie_category": {
+        "save_path": "$data_dir/torrents/movies"
+    },
+    "$music_category": {
+        "save_path": "$data_dir/torrents/music"
+    }
+}
+EOF
+    
+    # Create qBittorrent.conf file with basic configuration
+    local config_file="$qbt_config_dir/qBittorrent.conf"
+    
+    cat > "$config_file" << EOF
+[Application]
+FileLogger\\Enabled=true
+FileLogger\\Path=/config/qBittorrent/logs
+FileLogger\\Backup=true
+FileLogger\\MaxSizeBytes=66560
+FileLogger\\DeleteOld=true
+FileLogger\\AgeType=1
+FileLogger\\Age=6
+
+[BitTorrent]
+Session\\DefaultSavePath=$data_dir/torrents
+Session\\TempPath=$data_dir/torrents/incomplete
+Session\\TempPathEnabled=true
+Session\\UseAlternativeGlobalSpeedLimitTimer=false
+Session\\GlobalMaxRatio=-1
+Session\\GlobalMaxSeedingMinutes=-1
+Session\\QueueingSystemEnabled=true
+Session\\MaxActiveDownloads=3
+Session\\MaxActiveTorrents=5
+Session\\MaxActiveUploads=3
+
+[Preferences]
+General\\Locale=en
+Downloads\\SavePath=$data_dir/torrents
+Downloads\\TempPath=$data_dir/torrents/incomplete
+Downloads\\TempPathEnabled=true
+Downloads\\UseIncompleteExtension=false
+Downloads\\PreAllocation=false
+Downloads\\UseAlternativeGlobalSpeedLimitTimer=false
+Connection\\PortRangeMin=6881
+Connection\\PortRangeMax=6889
+Connection\\UPnP=true
+Connection\\GlobalDLLimitAlt=0
+Connection\\GlobalUPLimitAlt=0
+Bittorrent\\MaxRatio=-1
+Bittorrent\\MaxRatioAction=0
+Bittorrent\\GlobalMaxSeedingMinutes=-1
+Bittorrent\\QueueingEnabled=true
+Bittorrent\\MaxActiveDownloads=3
+Bittorrent\\MaxActiveTorrents=5
+Bittorrent\\MaxActiveUploads=3
+WebUI\\Enabled=true
+WebUI\\Address=*
+WebUI\\Port=8080
+WebUI\\UseUPnP=false
+WebUI\\Username=admin
+WebUI\\Password_PBKDF2="@ByteArray(ARQ77eY1NUZaQsuDHbIMCA==:0WMRkYTUWVT9wVvdDtHAjU9b3b7uB8NR1Gur2hmQCvCDpm39Q+PsJRJPaCU51dEiz+dTzh8qbPsL8WkFljQYFQ==)"
+WebUI\\CSRFProtection=true
+WebUI\\ClickjackingProtection=true
+WebUI\\SecureCookie=true
+WebUI\\MaxAuthenticationFailCount=5
+WebUI\\BanDuration=3600
+WebUI\\SessionTimeout=3600
+WebUI\\AlternativeUIEnabled=false
+WebUI\\RootFolder=
+WebUI\\HTTPS\\Enabled=false
+EOF
+    
+    if [ -f "$categories_file" ] && [ -f "$config_file" ]; then
+        echo -e "${GREEN}qBittorrent configuration created successfully:${NC}"
+        echo "  Categories: $categories_file"
+        echo "  Config: $config_file"
+        echo -e "${YELLOW}Default WebUI credentials: admin/adminadmin${NC}"
+    else
+        echo -e "${RED}Failed to create qBittorrent configuration${NC}"
+    fi
+}
+
 echo "========================================="
 echo "Docker Compose Media Server Setup"
 echo "========================================="
@@ -140,6 +243,15 @@ NEW_WIREGUARD_PRIVATE_KEY="${NEW_WIREGUARD_PRIVATE_KEY:-your_wireguard_private_k
 
 echo ""
 echo "========================================="
+echo "qBittorrent Categories"
+echo "========================================="
+
+prompt_with_default "TV Shows category:" "sonarr" "QB_CATEGORY_TV"
+prompt_with_default "Movies category:" "radarr" "QB_CATEGORY_MOVIE"
+prompt_with_default "Music category:" "lidarr" "QB_CATEGORY_MUSIC"
+
+echo ""
+echo "========================================="
 echo "Writing Configuration"
 echo "========================================="
 
@@ -187,6 +299,9 @@ if [ -f "./create-volumes.sh" ]; then
 else
     echo -e "${YELLOW}Warning: create-volumes.sh not found. You may need to create directories manually.${NC}"
 fi
+
+# Generate qBittorrent categories configuration
+generate_qbittorrent_categories "$QB_CATEGORY_TV" "$QB_CATEGORY_MOVIE" "$QB_CATEGORY_MUSIC" "$NEW_DOCKER_CONFIG_DIR" "$NEW_DATA_DIR"
 
 echo ""
 echo "========================================="
