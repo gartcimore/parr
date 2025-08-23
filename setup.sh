@@ -73,19 +73,25 @@ echo "Security Configuration"
 echo "========================================="
 
 # Generate Homarr secret key
-echo -e "${BLUE}Generating secure encryption key for Homarr...${NC}"
-if command -v openssl >/dev/null 2>&1; then
-    NEW_HOMARR_SECRET_KEY=$(openssl rand -hex 32)
-    echo -e "${GREEN}Generated 64-character encryption key${NC}"
+# Check if we already have a valid (non-default) key
+if [ -n "$HOMARR_SECRET_KEY" ] && [ "$HOMARR_SECRET_KEY" != "your_homarr_secret_key_here" ] && [ "$HOMARR_SECRET_KEY" != "" ]; then
+    echo -e "${GREEN}Using existing Homarr encryption key${NC}"
+    NEW_HOMARR_SECRET_KEY="$HOMARR_SECRET_KEY"
 else
-    echo -e "${YELLOW}OpenSSL not found. Using fallback method...${NC}"
-    # Fallback: generate using /dev/urandom if available
-    if [ -r /dev/urandom ]; then
-        NEW_HOMARR_SECRET_KEY=$(head -c 32 /dev/urandom | xxd -p -c 32)
+    echo -e "${BLUE}Generating secure encryption key for Homarr...${NC}"
+    if command -v openssl >/dev/null 2>&1; then
+        NEW_HOMARR_SECRET_KEY=$(openssl rand -hex 32)
         echo -e "${GREEN}Generated 64-character encryption key${NC}"
     else
-        echo -e "${RED}Cannot generate secure key automatically${NC}"
-        prompt_with_default "Homarr encryption key (64 characters):" "${HOMARR_SECRET_KEY:-$(date +%s | sha256sum | head -c 64)}" "NEW_HOMARR_SECRET_KEY"
+        echo -e "${YELLOW}OpenSSL not found. Using fallback method...${NC}"
+        # Fallback: generate using /dev/urandom if available
+        if [ -r /dev/urandom ]; then
+            NEW_HOMARR_SECRET_KEY=$(head -c 32 /dev/urandom | xxd -p -c 32)
+            echo -e "${GREEN}Generated 64-character encryption key${NC}"
+        else
+            echo -e "${RED}Cannot generate secure key automatically${NC}"
+            prompt_with_default "Homarr encryption key (64 characters):" "${HOMARR_SECRET_KEY:-$(date +%s | sha256sum | head -c 64)}" "NEW_HOMARR_SECRET_KEY"
+        fi
     fi
 fi
 
