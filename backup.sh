@@ -107,7 +107,7 @@ stop_stack
 
 # Function to extract service names from docker-compose.yml
 get_services_with_config() {
-    # List of services that have config directories to backup
+    # List of services that should have config directories to backup
     local services=(
         "prowlarr"
         "radarr" 
@@ -124,18 +124,61 @@ get_services_with_config() {
     printf '%s\n' "${services[@]}"
 }
 
+# Function to get the actual config folder path for a service from docker-compose.yml
+get_service_config_path() {
+    local service_name="$1"
+    
+    if [[ ! -f "docker-compose.yml" ]]; then
+        print_error "docker-compose.yml not found in current directory"
+        return 1
+    fi
+    
+    # Look for the service section and find its DOCKER_CONFIG_DIR volume mapping
+    local in_service_section=false
+    local config_path=""
+    
+    while IFS= read -r line; do
+        # Check if we're entering the target service section
+        if [[ $line =~ ^[[:space:]]*${service_name}:[[:space:]]*$ ]]; then
+            in_service_section=true
+            continue
+        fi
+        
+        # Check if we're leaving the service section (next service with 2-space indentation)
+        if [[ $in_service_section == true ]] && [[ $line =~ ^[[:space:]]{2}[a-zA-Z0-9_-]+:[[:space:]]*$ ]]; then
+            in_service_section=false
+        fi
+        
+        # If we're in the service section, look for DOCKER_CONFIG_DIR volume mapping
+        if [[ $in_service_section == true ]] && [[ $line =~ -[[:space:]]*\$\{DOCKER_CONFIG_DIR\}/([^:]+): ]]; then
+            config_path="${BASH_REMATCH[1]}"
+            break
+        fi
+    done < docker-compose.yml
+    
+    if [[ -n "$config_path" ]]; then
+        echo "$config_path"
+    else
+        # Fallback to service name if no mapping found
+        echo "$service_name"
+    fi
+}
+
 # Function to get config folders that actually exist
 get_existing_config_folders() {
     local services=($(get_services_with_config))
     local existing_folders=()
     
     for service in "${services[@]}"; do
-        local config_path="$DOCKER_CONFIG_DIR/$service"
+        # Get the actual config folder path from docker-compose.yml
+        local actual_folder=$(get_service_config_path "$service")
+        local config_path="$DOCKER_CONFIG_DIR/$actual_folder"
+        
         if [[ -d "$config_path" ]]; then
-            existing_folders+=("$service")
-            print_status "Found config for service: $service" >&2
+            existing_folders+=("$actual_folder")
+            print_status "Found config for service: $service -> $actual_folder" >&2
         else
-            print_warning "Config folder not found for service: $service (skipping)" >&2
+            print_warning "Config folder not found for service: $service -> $actual_folder (skipping)" >&2
         fi
     done
     
