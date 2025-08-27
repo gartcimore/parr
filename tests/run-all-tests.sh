@@ -78,6 +78,18 @@ else
 fi
 echo ""
 
+# Test Suite 4: Backup System Tests
+print_suite "Backup System Tests"
+total_suites=$((total_suites + 1))
+if ./tests/test-backup-system.sh; then
+    passed_suites=$((passed_suites + 1))
+    print_result 0 "Backup System Tests"
+else
+    failed_suites=$((failed_suites + 1))
+    print_result 1 "Backup System Tests"
+fi
+echo ""
+
 # Final Summary
 print_header "Test Results Summary"
 echo ""
