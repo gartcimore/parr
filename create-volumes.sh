@@ -149,6 +149,10 @@ create_directory "$DATA_DIR/media/movies" "Movies library"
 create_directory "$DATA_DIR/media/music" "Music library"
 create_directory "$DATA_DIR/media/tv" "TV shows library"
 
+# Create backup directory
+print_status "Creating backup directory..."
+create_directory "$DATA_DIR/parr_backup" "Configuration backups"
+
 print_status "Setting up directory permissions..."
 
 # Ensure proper permissions for all created directories
@@ -177,6 +181,7 @@ echo "  • Main Data:   $DATA_DIR"
 echo "  • Torrents:    $DATA_DIR/torrents/{books,movies,music,tv}"
 echo "  • Usenet:      $DATA_DIR/usenet/{incomplete,complete}"
 echo "  • Media:       $DATA_DIR/media/{books,movies,music,tv}"
+echo "  • Backups:     $DATA_DIR/parr_backup"
 if [ -d "/mnt/data" ]; then
 echo "  • Secondary:   /mnt/data/media"
 fi
