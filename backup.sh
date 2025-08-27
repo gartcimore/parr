@@ -107,25 +107,19 @@ stop_stack
 
 # Function to extract service names from docker-compose.yml
 get_services_with_config() {
-    if [[ ! -f "docker-compose.yml" ]]; then
-        print_error "docker-compose.yml not found in current directory"
-        exit 1
-    fi
-    
-    # Extract services that have volumes mapping to DOCKER_CONFIG_DIR
-    local services=()
-    while IFS= read -r line; do
-        if [[ $line =~ ^[[:space:]]*([a-zA-Z0-9_-]+):[[:space:]]*$ ]]; then
-            service_name="${BASH_REMATCH[1]}"
-            # Skip special sections
-            if [[ "$service_name" != "services" && "$service_name" != "networks" && "$service_name" != "volumes" ]]; then
-                # Check if this service has a config volume mapping
-                if grep -A 20 "^[[:space:]]*${service_name}:" docker-compose.yml | grep -q "\${DOCKER_CONFIG_DIR}"; then
-                    services+=("$service_name")
-                fi
-            fi
-        fi
-    done < docker-compose.yml
+    # List of services that have config directories to backup
+    local services=(
+        "prowlarr"
+        "radarr" 
+        "sonarr"
+        "bazarr"
+        "lidarr"
+        "jellyfin"
+        "jellyseer"
+        "homarr"
+        "gluetun"
+        "qbittorrent"
+    )
     
     printf '%s\n' "${services[@]}"
 }
@@ -139,9 +133,9 @@ get_existing_config_folders() {
         local config_path="$DOCKER_CONFIG_DIR/$service"
         if [[ -d "$config_path" ]]; then
             existing_folders+=("$service")
-            print_status "Found config for service: $service"
+            print_status "Found config for service: $service" >&2
         else
-            print_warning "Config folder not found for service: $service (skipping)"
+            print_warning "Config folder not found for service: $service (skipping)" >&2
         fi
     done
     
