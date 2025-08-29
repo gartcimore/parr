@@ -105,80 +105,41 @@ echo ""
 # Stop the stack
 stop_stack
 
-# Function to extract service names from docker-compose.yml
-get_services_with_config() {
-    # List of services that should have config directories to backup
-    local services=(
-        "prowlarr"
-        "radarr" 
-        "sonarr"
-        "bazarr"
-        "lidarr"
-        "jellyfin"
-        "jellyseer"
-        "homarr"
-        "gluetun"
-        "qbittorrent"
-    )
-    
-    printf '%s\n' "${services[@]}"
-}
-
-# Function to get the actual config folder path for a service from docker-compose.yml
-get_service_config_path() {
-    local service_name="$1"
-    
+# Function to extract config folders from docker-compose.yml volume mounts
+get_config_folders_from_volumes() {
     if [[ ! -f "docker-compose.yml" ]]; then
         print_error "docker-compose.yml not found in current directory"
         return 1
     fi
     
-    # Look for the service section and find its DOCKER_CONFIG_DIR volume mapping
-    local in_service_section=false
-    local config_path=""
+    local config_folders=()
     
+    # Parse docker-compose.yml for volume mounts using DOCKER_CONFIG_DIR
     while IFS= read -r line; do
-        # Check if we're entering the target service section
-        if [[ $line =~ ^[[:space:]]*${service_name}:[[:space:]]*$ ]]; then
-            in_service_section=true
-            continue
-        fi
-        
-        # Check if we're leaving the service section (next service with 2-space indentation)
-        if [[ $in_service_section == true ]] && [[ $line =~ ^[[:space:]]{2}[a-zA-Z0-9_-]+:[[:space:]]*$ ]]; then
-            in_service_section=false
-        fi
-        
-        # If we're in the service section, look for DOCKER_CONFIG_DIR volume mapping
-        if [[ $in_service_section == true ]] && [[ $line =~ -[[:space:]]*\$\{DOCKER_CONFIG_DIR\}/([^:]+): ]]; then
-            config_path="${BASH_REMATCH[1]}"
-            break
+        # Look for volume lines that contain ${DOCKER_CONFIG_DIR}/something:/something
+        if [[ $line =~ -[[:space:]]*\$\{DOCKER_CONFIG_DIR\}/([^:]+): ]]; then
+            local folder_path="${BASH_REMATCH[1]}"
+            config_folders+=("$folder_path")
         fi
     done < docker-compose.yml
     
-    if [[ -n "$config_path" ]]; then
-        echo "$config_path"
-    else
-        # Fallback to service name if no mapping found
-        echo "$service_name"
-    fi
+    # Remove duplicates and sort
+    printf '%s\n' "${config_folders[@]}" | sort -u
 }
 
 # Function to get config folders that actually exist
 get_existing_config_folders() {
-    local services=($(get_services_with_config))
+    local all_folders=($(get_config_folders_from_volumes))
     local existing_folders=()
     
-    for service in "${services[@]}"; do
-        # Get the actual config folder path from docker-compose.yml
-        local actual_folder=$(get_service_config_path "$service")
-        local config_path="$DOCKER_CONFIG_DIR/$actual_folder"
+    for folder in "${all_folders[@]}"; do
+        local config_path="$DOCKER_CONFIG_DIR/$folder"
         
         if [[ -d "$config_path" ]]; then
-            existing_folders+=("$actual_folder")
-            print_status "Found config for service: $service -> $actual_folder" >&2
+            existing_folders+=("$folder")
+            print_status "Found config folder: $folder" >&2
         else
-            print_warning "Config folder not found for service: $service -> $actual_folder (skipping)" >&2
+            print_warning "Config folder not found: $folder (skipping)" >&2
         fi
     done
     
@@ -186,7 +147,7 @@ get_existing_config_folders() {
 }
 
 # Create the backup
-print_status "Analyzing docker-compose.yml for services with config volumes..."
+print_status "Analyzing docker-compose.yml for DOCKER_CONFIG_DIR volume mounts..."
 
 # Get list of services with existing config folders
 CONFIG_FOLDERS=($(get_existing_config_folders))
@@ -197,20 +158,36 @@ if [[ ${#CONFIG_FOLDERS[@]} -eq 0 ]]; then
     exit 1
 fi
 
-print_status "Will backup config for ${#CONFIG_FOLDERS[@]} services: ${CONFIG_FOLDERS[*]}"
+print_status "Will backup ${#CONFIG_FOLDERS[@]} config folders: ${CONFIG_FOLDERS[*]}"
 
 # Change to DOCKER_CONFIG_DIR to create relative paths in tar
 if cd "$DOCKER_CONFIG_DIR"; then
     # Create tar with specific folders, excluding cache directories
     TAR_EXCLUDES=(
+        "--exclude=*/cache"
         "--exclude=*/cache/*"
-        "--exclude=*/Cache/*" 
-        "--exclude=*/transcodes/*"
-        "--exclude=*/metadata/library/*"
-        "--exclude=*/log/*"
+        "--exclude=*/Cache"
+        "--exclude=*/Cache/*"
+        "--exclude=*/logs"
         "--exclude=*/logs/*"
+        "--exclude=*/log"
+        "--exclude=*/log/*"
+        "--exclude=*/Logs"
+        "--exclude=*/Logs/*"
+        "--exclude=*/Log"
+        "--exclude=*/Log/*"
+        "--exclude=*/tmp"
         "--exclude=*/tmp/*"
+        "--exclude=*/temp"
         "--exclude=*/temp/*"
+        "--exclude=*/Temp"
+        "--exclude=*/Temp/*"
+        "--exclude=*/transcodes"
+        "--exclude=*/transcodes/*"
+        "--exclude=*/metadata/library"
+        "--exclude=*/metadata/library/*"
+        "--exclude=*.log"
+        "--exclude=*.tmp"
     )
     
     if tar -czf "$BACKUP_DIR/$BACKUP_FILENAME" "${TAR_EXCLUDES[@]}" "${CONFIG_FOLDERS[@]}"; then

@@ -358,18 +358,18 @@ test_create_volumes_integration() {
 
 # Test 10: Test docker-compose.yml service parsing
 test_service_parsing() {
-    print_test "Testing docker-compose.yml service parsing logic"
+    print_test "Testing docker-compose.yml volume parsing logic"
     
     if [ ! -f "backup.sh" ]; then
         print_fail "backup.sh not found"
         return 1
     fi
     
-    # Check that backup.sh includes service parsing functions
-    if grep -q "get_services_with_config" backup.sh; then
-        print_pass "backup.sh includes service parsing function"
+    # Check that backup.sh includes volume parsing functions
+    if grep -q "get_config_folders_from_volumes" backup.sh; then
+        print_pass "backup.sh includes volume parsing function"
     else
-        print_fail "backup.sh missing service parsing function"
+        print_fail "backup.sh missing volume parsing function"
         return 1
     fi
     
