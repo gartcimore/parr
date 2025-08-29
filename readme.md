@@ -163,7 +163,7 @@ The setup creates the following structure:
 ├── jellyseer/
 ├── homarr/
 ├── gluetun/
-└── qbittorent/
+└── qbittorrent/
 ```
 
 ### Data Directory
