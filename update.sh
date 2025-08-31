@@ -52,6 +52,20 @@ echo ""
 # Stack management functions are now in stack-utils.sh
 
 # Main update logic
+echo "========================================="
+echo "Updating Media Server Stack"
+echo "========================================="
+
+# Pull latest images first (no downtime)
+echo -e "${BLUE}Pulling latest Docker images...${NC}"
+if docker compose pull; then
+    echo -e "${GREEN}Images updated successfully${NC}"
+else
+    echo -e "${RED}Failed to pull images${NC}"
+    exit 1
+fi
+
+# Update the stack based on installation type
 if [ "$INSTALL_TYPE" = "service" ]; then
     # Service mode
     SERVICE_NAME="arr"
@@ -67,22 +81,23 @@ if [ "$INSTALL_TYPE" = "service" ]; then
         exit 1
     fi
     
-    # Stop service if running
-    stop_stack "$SERVICE_NAME"
-    
-    # Pull latest images
-    echo -e "${BLUE}Pulling latest Docker images...${NC}"
-    if docker compose pull; then
-        echo -e "${GREEN}Images updated successfully${NC}"
+    # Check if service is running and handle accordingly
+    if is_service_running "$SERVICE_NAME"; then
+        echo -e "${BLUE}Service is running, restarting to apply updates...${NC}"
+        if sudo systemctl restart "$SERVICE_NAME"; then
+            echo -e "${GREEN}Service restarted successfully${NC}"
+        else
+            echo -e "${RED}Failed to restart service${NC}"
+            exit 1
+        fi
     else
-        echo -e "${RED}Failed to pull images${NC}"
-        exit 1
-    fi
-    
-    # Start service
-    if ! start_stack "$SERVICE_NAME"; then
-        echo -e "${RED}Failed to start service${NC}"
-        exit 1
+        echo -e "${BLUE}Service is stopped, starting with new images...${NC}"
+        if sudo systemctl start "$SERVICE_NAME"; then
+            echo -e "${GREEN}Service started successfully${NC}"
+        else
+            echo -e "${RED}Failed to start service${NC}"
+            exit 1
+        fi
     fi
     
     # Wait a moment for services to initialize
@@ -92,26 +107,16 @@ if [ "$INSTALL_TYPE" = "service" ]; then
     wait_for_stack_health 30 "$SERVICE_NAME"
     
 else
-    # Docker stack mode
+    # Docker stack mode - use docker compose up to restart only changed containers
     echo "========================================="
     echo "Updating Docker Stack"
     echo "========================================="
     
-    # Stop stack if running
-    stop_stack
-    
-    # Pull latest images
-    echo -e "${BLUE}Pulling latest Docker images...${NC}"
-    if docker compose pull; then
-        echo -e "${GREEN}Images updated successfully${NC}"
+    # Use docker compose up -d which will only restart containers with new images
+    if docker compose up -d; then
+        echo -e "${GREEN}Stack updated successfully${NC}"
     else
-        echo -e "${RED}Failed to pull images${NC}"
-        exit 1
-    fi
-    
-    # Start stack
-    if ! start_stack; then
-        echo -e "${RED}Failed to start stack${NC}"
+        echo -e "${RED}Failed to update stack${NC}"
         exit 1
     fi
     
@@ -128,6 +133,7 @@ echo "Update Complete!"
 echo "========================================="
 echo ""
 echo -e "${GREEN}Your media server stack has been updated successfully!${NC}"
+echo -e "${GREEN}Only containers with new images were restarted to minimize downtime.${NC}"
 echo ""
 show_stack_info "$SERVICE_NAME"
 echo ""
