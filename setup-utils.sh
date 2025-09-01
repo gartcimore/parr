@@ -73,3 +73,40 @@ load_env_file() {
         done < "$file"
     fi
 }
+
+# Function to create directory with proper error handling
+create_dir() {
+    local dir_path="$1"
+    if [ -n "$dir_path" ]; then
+        mkdir -p "$dir_path"
+        if [ $? -eq 0 ]; then
+            echo -e "${GREEN}Created directory: $dir_path${NC}"
+        else
+            echo -e "${RED}Failed to create directory: $dir_path${NC}"
+            return 1
+        fi
+    fi
+}
+
+# Function to create file with content
+create_file() {
+    local file_path="$1"
+    local content="$2"
+    
+    if [ -n "$file_path" ]; then
+        # Create parent directory if it doesn't exist
+        local parent_dir=$(dirname "$file_path")
+        if [ ! -d "$parent_dir" ]; then
+            mkdir -p "$parent_dir"
+        fi
+        
+        # Write content to file
+        echo "$content" > "$file_path"
+        if [ $? -eq 0 ]; then
+            echo -e "${GREEN}Created file: $file_path${NC}"
+        else
+            echo -e "${RED}Failed to create file: $file_path${NC}"
+            return 1
+        fi
+    fi
+}
