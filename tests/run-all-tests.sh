@@ -90,6 +90,18 @@ else
 fi
 echo ""
 
+# Test Suite 5: Arr Configuration Generation Tests
+print_suite "Arr Configuration Generation Tests"
+total_suites=$((total_suites + 1))
+if ./tests/test-generate-arr-configs.sh; then
+    passed_suites=$((passed_suites + 1))
+    print_result 0 "Arr Configuration Generation Tests"
+else
+    failed_suites=$((failed_suites + 1))
+    print_result 1 "Arr Configuration Generation Tests"
+fi
+echo ""
+
 # Final Summary
 print_header "Test Results Summary"
 echo ""

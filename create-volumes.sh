@@ -5,12 +5,14 @@
 
 set -e  # Exit on any error
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+# Load utility functions
+if [ -f "setup-utils.sh" ]; then
+    source setup-utils.sh
+else
+    echo "Error: setup-utils.sh not found!"
+    echo "Please ensure setup-utils.sh is in the same directory as create-volumes.sh"
+    exit 1
+fi
 
 # Function to print colored output
 print_status() {
@@ -35,27 +37,7 @@ if [ ! -f ".env" ]; then
     exit 1
 fi
 
-# Function to safely load environment variables from file
-load_env_file() {
-    local file="$1"
-    if [ -f "$file" ]; then
-        # Read variables safely, ignoring comments and empty lines
-        while IFS='=' read -r key value; do
-            # Skip comments and empty lines
-            [[ $key =~ ^[[:space:]]*# ]] && continue
-            [[ -z $key ]] && continue
-            
-            # Remove leading/trailing whitespace and quotes
-            key=$(echo "$key" | xargs)
-            value=$(echo "$value" | xargs | sed 's/^["'\'']//' | sed 's/["'\'']*$//')
-            
-            # Export the variable
-            if [ -n "$key" ] && [ -n "$value" ]; then
-                export "$key"="$value"
-            fi
-        done < "$file"
-    fi
-}
+# Note: load_env_file function is now available from setup-utils.sh
 
 # Load environment variables from .env file
 print_status "Loading environment variables from .env file..."
@@ -75,7 +57,7 @@ fi
 print_status "Using DOCKER_CONFIG_DIR: $DOCKER_CONFIG_DIR"
 print_status "Using DATA_DIR: $DATA_DIR"
 
-# Function to create directory with proper permissions
+# Enhanced function to create directory with proper permissions using utility function
 create_directory() {
     local dir_path="$1"
     local description="$2"
@@ -83,15 +65,21 @@ create_directory() {
     if [ ! -d "$dir_path" ]; then
         print_status "Creating directory: $dir_path ($description)"
         
-        # Try to create directory (with or without sudo)
-        if mkdir -p "$dir_path" 2>/dev/null; then
-            print_success "Created: $dir_path"
-        elif sudo mkdir -p "$dir_path" 2>/dev/null; then
-            print_success "Created (with sudo): $dir_path"
+        # Use utility function to create directory
+        if create_dir "$dir_path"; then
             # Set ownership to user 1000:1000 (PUID:PGID used by most services)
-            sudo chown 1000:1000 "$dir_path" 2>/dev/null || print_warning "Could not set ownership for $dir_path"
+            if sudo chown 1000:1000 "$dir_path" 2>/dev/null; then
+                print_status "Set ownership (1000:1000) for: $dir_path"
+            else
+                print_warning "Could not set ownership for $dir_path"
+            fi
+            
             # Set appropriate permissions
-            sudo chmod 755 "$dir_path" 2>/dev/null || print_warning "Could not set permissions for $dir_path"
+            if sudo chmod 755 "$dir_path" 2>/dev/null; then
+                print_status "Set permissions (755) for: $dir_path"
+            else
+                print_warning "Could not set permissions for $dir_path"
+            fi
         else
             print_error "Could not create directory: $dir_path"
             print_warning "You may need to create this directory manually with appropriate permissions"
@@ -101,21 +89,39 @@ create_directory() {
     fi
 }
 
+# Function to create multiple directories efficiently
+create_directories_batch() {
+    local base_path="$1"
+    shift
+    local directories=("$@")
+    
+    for dir in "${directories[@]}"; do
+        local full_path="$base_path/$dir"
+        local description=$(basename "$dir")
+        create_directory "$full_path" "$description"
+    done
+}
+
 print_status "Starting directory creation process..."
 
 # Create service config directories
 print_status "Creating service configuration directories..."
 
-create_directory "$DOCKER_CONFIG_DIR/prowlarr/data" "Prowlarr"
-create_directory "$DOCKER_CONFIG_DIR/radarr" "Radarr"
-create_directory "$DOCKER_CONFIG_DIR/sonarr" "Sonarr"
-create_directory "$DOCKER_CONFIG_DIR/bazarr" "Bazarr"
-create_directory "$DOCKER_CONFIG_DIR/lidarr" "Lidarr"
-create_directory "$DOCKER_CONFIG_DIR/jellyfin" "Jellyfin"
-create_directory "$DOCKER_CONFIG_DIR/jellyseer" "Jellyseer"
-create_directory "$DOCKER_CONFIG_DIR/homarr" "Homarr"
-create_directory "$DOCKER_CONFIG_DIR/gluetun" "Gluetun"
-create_directory "$DOCKER_CONFIG_DIR/qbittorrent" "qBittorrent"
+# Service config directories
+service_dirs=(
+    "prowlarr/data"
+    "radarr"
+    "sonarr"
+    "bazarr"
+    "lidarr"
+    "jellyfin"
+    "jellyseer"
+    "homarr"
+    "gluetun"
+    "qbittorrent"
+)
+
+create_directories_batch "$DOCKER_CONFIG_DIR" "${service_dirs[@]}"
 
 # Create data directories based on .env configuration
 print_status "Creating data directories..."
@@ -123,31 +129,43 @@ print_status "Creating data directories..."
 # Create main data directory
 create_directory "$DATA_DIR" "Main data directory"
 
-# Create torrent directories
+# Create data directories using batch function
+print_status "Creating data directories..."
+
+# Torrent directories
 print_status "Creating torrent directories..."
-create_directory "$DATA_DIR/torrents" "Torrent downloads"
-create_directory "$DATA_DIR/torrents/books" "Torrent books"
-create_directory "$DATA_DIR/torrents/movies" "Torrent movies"
-create_directory "$DATA_DIR/torrents/music" "Torrent music"
-create_directory "$DATA_DIR/torrents/tv" "Torrent TV shows"
+torrent_dirs=(
+    "torrents"
+    "torrents/books"
+    "torrents/movies"
+    "torrents/music"
+    "torrents/tv"
+)
+create_directories_batch "$DATA_DIR" "${torrent_dirs[@]}"
 
-# Create usenet directories
+# Usenet directories
 print_status "Creating usenet directories..."
-create_directory "$DATA_DIR/usenet" "Usenet downloads"
-create_directory "$DATA_DIR/usenet/incomplete" "Usenet incomplete downloads"
-create_directory "$DATA_DIR/usenet/complete" "Usenet complete downloads"
-create_directory "$DATA_DIR/usenet/complete/books" "Usenet books"
-create_directory "$DATA_DIR/usenet/complete/movies" "Usenet movies"
-create_directory "$DATA_DIR/usenet/complete/music" "Usenet music"
-create_directory "$DATA_DIR/usenet/complete/tv" "Usenet TV shows"
+usenet_dirs=(
+    "usenet"
+    "usenet/incomplete"
+    "usenet/complete"
+    "usenet/complete/books"
+    "usenet/complete/movies"
+    "usenet/complete/music"
+    "usenet/complete/tv"
+)
+create_directories_batch "$DATA_DIR" "${usenet_dirs[@]}"
 
-# Create final media directories
+# Final media directories
 print_status "Creating final media directories..."
-create_directory "$DATA_DIR/media" "Final media storage"
-create_directory "$DATA_DIR/media/books" "Books library"
-create_directory "$DATA_DIR/media/movies" "Movies library"
-create_directory "$DATA_DIR/media/music" "Music library"
-create_directory "$DATA_DIR/media/tv" "TV shows library"
+media_dirs=(
+    "media"
+    "media/books"
+    "media/movies"
+    "media/music"
+    "media/tv"
+)
+create_directories_batch "$DATA_DIR" "${media_dirs[@]}"
 
 # Create backup directory
 print_status "Creating backup directory..."
