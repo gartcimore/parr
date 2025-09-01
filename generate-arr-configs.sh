@@ -1,0 +1,182 @@
+#!/bin/bash
+
+# Script to generate configuration files for arr* services
+# This script will be called by setup.sh
+
+set -e
+
+# Load utility functions if available
+if [ -f "setup-utils.sh" ]; then
+    source setup-utils.sh
+fi
+
+# Function to generate base configuration for arr* services
+generate_arr_base_config() {
+    local service=$1
+    local port=$2
+    local api_key=$(openssl rand -hex 32)
+    
+    create_dir "$DOCKER_CONFIG_DIR/$service" > /dev/null
+    
+    create_file "$DOCKER_CONFIG_DIR/$service/config.xml" "$(cat << EOF
+<?xml version="1.0" encoding="utf-8"?>
+<Config>
+  <LogLevel>info</LogLevel>
+  <UpdateMechanism>Docker</UpdateMechanism>
+  <UrlBase>/${service}</UrlBase>
+  <Branch>main</Branch>
+  <Port>${port}</Port>
+  <BindAddress>*</BindAddress>
+  <ApiKey>${api_key}</ApiKey>
+  <AuthenticationMethod>None</AuthenticationMethod>
+  <AnalyticsEnabled>False</AnalyticsEnabled>
+  <SslPort>0</SslPort>
+  <EnableSsl>False</EnableSsl>
+  <LaunchBrowser>False</LaunchBrowser>
+</Config>
+EOF
+)" > /dev/null
+    
+    printf "%s" "$api_key"  # Use printf to avoid newline
+}
+
+# Function to generate complete arr* service configurations
+generate_arr_configs() {
+    local service=$1
+    local port=$2
+    local category=$3
+    local root_folder=$4
+    
+    create_dir "$DOCKER_CONFIG_DIR/$service/config" > /dev/null
+    
+    local api_key
+    api_key=$(generate_arr_base_config "$service" "$port")
+    
+    create_file "$DOCKER_CONFIG_DIR/$service/config/mediamanagement.json" "$(cat << EOF
+{
+  "autoUnmonitorPreviouslyDownloadedEpisodes": false,
+  "recycleBin": "",
+  "recycleBinCleanupDays": 7,
+  "downloadPropersAndRepacks": "preferAndUpgrade",
+  "createEmptySeriesFolders": false,
+  "deleteEmptyFolders": true,
+  "fileDate": "none",
+  "rescanAfterRefresh": "always",
+  "setPermissionsLinux": true,
+  "chmodFolder": "755",
+  "skipFreeSpaceCheckWhenImporting": false,
+  "minimumFreeSpaceWhenImporting": 100,
+  "copyUsingHardlinks": true,
+  "importExtraFiles": true,
+  "extraFileExtensions": "srt,sub,idx,nfo",
+  "enableMediaInfo": true,
+  "defaultRootFolderPath": "${root_folder}"
+}
+EOF
+)" > /dev/null
+    
+    create_file "$DOCKER_CONFIG_DIR/$service/config/downloadclient.json" "$(cat << EOF
+{
+  "downloadClientConfigs": [
+    {
+      "enable": true,
+      "protocol": "torrent",
+      "priority": 1,
+      "name": "qBittorrent",
+      "implementation": "QBittorrent",
+      "configContract": "QBittorrentSettings",
+      "host": "qbittorrent",
+      "port": 8080,
+      "username": "admin",
+      "password": "adminadmin",
+      "category": "${category}",
+      "removeCompletedDownloads": ${DELETE_AFTER_SEED:-false},
+      "removeFailedDownloads": true
+    }
+  ]
+}
+EOF
+)" > /dev/null
+    
+    printf "%s" "$api_key"  # Use printf to avoid newline
+}
+
+# Function to generate all arr* service configurations
+generate_all_arr_configs() {
+    local config_root="${1:-$DOCKER_CONFIG_DIR}"
+    local data_dir="${2:-$DATA_DIR}"
+    local tv_category="${3:-sonarr}"
+    local movie_category="${4:-radarr}"
+    local music_category="${5:-lidarr}"
+    
+    # Set global variables for the functions
+    DOCKER_CONFIG_DIR="$config_root"
+    DELETE_AFTER_SEED="${DELETE_AFTER_SEED:-false}"
+    
+    echo "Generating arr* service configurations..."
+    
+    # Generate Sonarr configuration
+    echo "Configuring Sonarr..."
+    SONARR_API_KEY=$(generate_arr_configs "sonarr" "8989" "$tv_category" "$data_dir/media/tv")
+    echo "Sonarr API Key: $SONARR_API_KEY"
+    
+    # Generate Radarr configuration
+    echo "Configuring Radarr..."
+    RADARR_API_KEY=$(generate_arr_configs "radarr" "7878" "$movie_category" "$data_dir/media/movies")
+    echo "Radarr API Key: $RADARR_API_KEY"
+    
+    # Generate Lidarr configuration
+    echo "Configuring Lidarr..."
+    LIDARR_API_KEY=$(generate_arr_configs "lidarr" "8686" "$music_category" "$data_dir/media/music")
+    echo "Lidarr API Key: $LIDARR_API_KEY"
+    
+    # Generate Prowlarr configuration
+    echo "Configuring Prowlarr..."
+    PROWLARR_API_KEY=$(generate_arr_base_config "prowlarr" "9696")
+    echo "Prowlarr API Key: $PROWLARR_API_KEY"
+
+    # Export the API keys as environment variables
+    export SONARR_API_KEY
+    export RADARR_API_KEY
+    export LIDARR_API_KEY
+    export PROWLARR_API_KEY
+    
+    echo "All arr* configurations generated successfully!"
+    echo ""
+    echo "API Keys generated and exported as environment variables:"
+    echo "  SONARR_API_KEY=$SONARR_API_KEY"
+    echo "  RADARR_API_KEY=$RADARR_API_KEY"
+    echo "  LIDARR_API_KEY=$LIDARR_API_KEY"
+    echo "  PROWLARR_API_KEY=$PROWLARR_API_KEY"
+    echo ""
+    echo "These API keys are now available as environment variables for other scripts."
+}
+
+# Function to save API keys to .env file
+save_api_keys_to_env() {
+    local env_file="${1:-.env}"
+    
+    if [ -n "$SONARR_API_KEY" ] && [ -n "$RADARR_API_KEY" ] && [ -n "$LIDARR_API_KEY" ]; then
+        echo "" >> "$env_file"
+        echo "# Arr* Service API Keys (Generated by generate-arr-configs.sh)" >> "$env_file"
+        echo "SONARR_API_KEY=$SONARR_API_KEY" >> "$env_file"
+        echo "RADARR_API_KEY=$RADARR_API_KEY" >> "$env_file"
+        echo "LIDARR_API_KEY=$LIDARR_API_KEY" >> "$env_file"
+        echo "PROWLARR_API_KEY=$PROWLARR_API_KEY" >> "$env_file"
+        
+        echo "API keys saved to $env_file"
+    else
+        echo "Warning: API keys not found. Run generate_all_arr_configs first."
+    fi
+}
+
+# If script is run directly, generate all configurations
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    # Load environment variables if .env exists
+    if [ -f ".env" ]; then
+        source .env
+    fi
+    
+    generate_all_arr_configs "$@"
+    save_api_keys_to_env
+fi
