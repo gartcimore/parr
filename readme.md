@@ -15,7 +15,7 @@ flowchart TD
     Traefik --> Radarr[Radarr :7878]
     Traefik --> Sonarr[Sonarr :8989]
     Traefik --> Bazarr[Bazarr :6767]
-    Traefik --> Prowlarr[Prowyfin :9696]
+    Traefik --> Prowlarr[Prowlarr :9696]
     Traefik --> Lidarr[Lidarr :8686]
     Traefik --> Jellyseer[Jellyseer :5055]
     Traefik --> Homarr[Homarr :7575]
