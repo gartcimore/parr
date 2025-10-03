@@ -80,8 +80,7 @@ This interactive script will:
 
 **For Service Installation**:
 ```bash
-sudo systemctl start arr@<directory-name>
-# Example: sudo systemctl start arr@parr
+sudo systemctl start arr
 ```
 
 **For Docker Stack Installation**:
