@@ -218,30 +218,31 @@ services:
     restart: unless-stopped
 
 ############################
-# JELLYSEER
+# SEERR
 ############################
-  jellyseer:
-    image: fallenbagel/jellyseerr:latest
-    container_name: jellyseer
+  seerr:
+    image: ghcr.io/seerr-team/seerr:latest
+    init: true
+    container_name: seerr
     environment:
       - LOG_LEVEL=debug
       - TZ=${TZ}
     volumes:
-      - ${DOCKER_CONFIG_DIR}/jellyseer:/app/config
+      - ${DOCKER_CONFIG_DIR}/seerr:/app/config
     ports:
       - 5055:5055
     networks:
       - traefik
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.jellyseer.rule=Host(`${HOSTNAME}`) && PathPrefix(`/jellyseer`)"
-      - "traefik.http.routers.jellyseer.entrypoints=web"
-      - "traefik.http.services.jellyseer.loadbalancer.server.port=5055"
-      - "traefik.http.middlewares.jellyseer-stripprefix.stripprefix.prefixes=/jellyseer"
-      - "traefik.http.middlewares.jellyseer-headers.headers.customrequestheaders.X-Forwarded-Proto=http"
-      - "traefik.http.middlewares.jellyseer-headers.headers.customrequestheaders.X-Forwarded-Host=${HOSTNAME}"
-      - "traefik.http.middlewares.jellyseer-headers.headers.customrequestheaders.X-Forwarded-Prefix=/jellyseer"
-      - "traefik.http.routers.jellyseer.middlewares=jellyseer-headers,jellyseer-stripprefix"
+      - "traefik.http.routers.seerr.rule=Host(`${HOSTNAME}`) && PathPrefix(`/seerr`)"
+      - "traefik.http.routers.seerr.entrypoints=web"
+      - "traefik.http.services.seerr.loadbalancer.server.port=5055"
+      - "traefik.http.middlewares.seerr-stripprefix.stripprefix.prefixes=/seerr"
+      - "traefik.http.middlewares.seerr-headers.headers.customrequestheaders.X-Forwarded-Proto=http"
+      - "traefik.http.middlewares.seerr-headers.headers.customrequestheaders.X-Forwarded-Host=${HOSTNAME}"
+      - "traefik.http.middlewares.seerr-headers.headers.customrequestheaders.X-Forwarded-Prefix=/seerr"
+      - "traefik.http.routers.seerr.middlewares=seerr-headers,seerr-stripprefix"
     restart: unless-stopped
 
 ############################

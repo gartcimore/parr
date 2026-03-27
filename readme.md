@@ -1,6 +1,6 @@
 # Parr - Personal Arr stack
 
-A complete *arr stack/media server setup with [Traefik](https://github.com/traefik/traefik) reverse proxy, including [Jellyfin](https://github.com/jellyfin/jellyfin), [Sonarr](https://github.com/Sonarr/Sonarr), [Radarr](https://github.com/Radarr/Radarr), [Bazarr](https://github.com/morpheus65535/bazarr), [Lidarr](https://github.com/Lidarr/Lidarr), [Prowlarr](https://github.com/Prowlarr/Prowlarr), [Jellyseer](https://github.com/Fallenbagel/jellyseerr), [Homarr](https://github.com/ajnart/homarr), and [qBittorrent](https://github.com/qbittorrent/qBittorrent) with VPN support.
+A complete *arr stack/media server setup with [Traefik](https://github.com/traefik/traefik) reverse proxy, including [Jellyfin](https://github.com/jellyfin/jellyfin), [Sonarr](https://github.com/Sonarr/Sonarr), [Radarr](https://github.com/Radarr/Radarr), [Bazarr](https://github.com/morpheus65535/bazarr), [Lidarr](https://github.com/Lidarr/Lidarr), [Prowlarr](https://github.com/Prowlarr/Prowlarr), [Seerr](https://github.com/seerr-team/seerr), [Homarr](https://github.com/ajnart/homarr), and [qBittorrent](https://github.com/qbittorrent/qBittorrent) with VPN support.
 
 ![badge](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/gartcimore/ebd5c4dd2c3996befd2d110c070c9cc4/raw/parr-tests.json)
 ## Architecture Overview
@@ -17,7 +17,7 @@ flowchart TD
     Traefik --> Bazarr[Bazarr :6767]
     Traefik --> Prowlarr[Prowlarr :9696]
     Traefik --> Lidarr[Lidarr :8686]
-    Traefik --> Jellyseer[Jellyseer :5055]
+    Traefik --> Seerr[Seerr :5055]
     Traefik --> Homarr[Homarr :7575]
     Traefik --> Gluetun[Gluetun VPN :8080]
     Gluetun --> QBittorrent[qBittorrent]
@@ -36,7 +36,7 @@ flowchart TD
         Bazarr
         Prowlarr
         Lidarr
-        Jellyseer
+        Seerr
         Homarr
         Gluetun
     end
@@ -131,7 +131,7 @@ Once configured, access your services at:
 - **Bazarr**: `http://your-hostname.local/bazarr` ✅
 - **Lidarr**: `http://your-hostname.local/lidarr` ✅
 - **Prowlarr**: `http://your-hostname.local/prowlarr` ✅
-- **Jellyseer**: `http://your-hostname.local/jellyseer` ❌ *No reverse proxy support*
+- **Seerr**: `http://your-hostname.local/seerr` ❌ *No reverse proxy support*
 - **Homarr**: `http://your-hostname.local/homarr` ❌ *Routing issues*
 - **qBittorrent**: `http://your-hostname.local/qbittorrent` ✅
 
@@ -159,7 +159,7 @@ The setup creates the following structure:
 ├── bazarr/
 ├── lidarr/
 ├── jellyfin/
-├── jellyseer/
+├── seerr/
 ├── homarr/
 ├── gluetun/
 └── qbittorrent/

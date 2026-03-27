@@ -75,7 +75,7 @@ test_required_services() {
         "bazarr"
         "lidarr"
         "jellyfin"
-        "jellyseer"
+        "seerr"
         "homarr"
         "gluetun"
         "qbittorrent"
@@ -130,7 +130,7 @@ test_network_config() {
 test_traefik_labels() {
     print_test "Validating Traefik labels on services"
     
-    local services_with_web=("prowlarr" "radarr" "sonarr" "bazarr" "lidarr" "jellyfin" "jellyseer" "homarr")
+    local services_with_web=("prowlarr" "radarr" "sonarr" "bazarr" "lidarr" "jellyfin" "seerr" "homarr")
     local config=$($COMPOSE_CMD config 2>/dev/null)
     
     for service in "${services_with_web[@]}"; do
@@ -158,7 +158,7 @@ test_volume_mounts() {
     local config=$($COMPOSE_CMD config 2>/dev/null)
     
     # Check that services have proper config volume mounts
-    local services_with_config=("prowlarr" "radarr" "sonarr" "bazarr" "lidarr" "jellyfin" "jellyseer" "homarr" "gluetun" "qbittorrent")
+    local services_with_config=("prowlarr" "radarr" "sonarr" "bazarr" "lidarr" "jellyfin" "seerr" "homarr" "gluetun" "qbittorrent")
     
     for service in "${services_with_config[@]}"; do
         if ! echo "$config" | grep -A 20 "${service}:" | grep -q "DOCKER_CONFIG_DIR"; then
