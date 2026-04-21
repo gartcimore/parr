@@ -107,7 +107,7 @@ start_stack() {
         
     elif [[ "$STACK_COMPOSE_WAS_RUNNING" == "true" ]]; then
         echo -e "${BLUE}Starting docker-compose stack...${NC}"
-        if docker compose up -d; then
+        if docker compose up -d --build; then
             echo -e "${GREEN}Stack started successfully${NC}"
         else
             echo -e "${RED}Failed to start stack${NC}"

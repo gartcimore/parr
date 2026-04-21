@@ -284,20 +284,39 @@ docker run --rm qmcgaw/gluetun:v3 format-servers -protonvpn
 
 ### 6. Port Forwarding
 
-Port forwarding is automatically configured for better torrent performance:
-- Gluetun will automatically get a forwarded port from ProtonVPN
-- qBittorrent will be automatically configured to use this port
-- Check logs for: `Port forwarding is enabled`
+Port forwarding is automatically managed by the [gluetun-qbt-watchdog](https://github.com/brunoorsolon/gluetun-qbt-watchdog), a sidecar container that replaces the old `VPN_PORT_FORWARDING_UP_COMMAND` approach.
+
+Every 60 seconds, the watchdog:
+1. Queries Gluetun's forwarded port via the [HTTP control server](https://github.com/qdm12/gluetun-wiki/blob/main/setup/advanced/control-server.md)
+2. Recovers the VPN if the port is missing (soft restart via API first, full container restart as last resort)
+3. Syncs the port to qBittorrent if there's a mismatch
+
+The watchdog runs on the `traefik` bridge network (not `network_mode: service:gluetun`), so it stays reachable even when Gluetun restarts.
+
+**Setup:**
+
+`GLUETUN_API_KEY`, `QBT_USER`, and `QBT_PASS` are configured automatically by `setup.sh`. If you need to generate an API key manually:
+
+```bash
+docker run --rm qmcgaw/gluetun genkey
+```
+
+Check watchdog logs with `docker compose logs gluetun-qbt-watchdog`. You should see heartbeat messages like `OK: gluetun=47830, qbt=47830` every 10 minutes.
 
 ### 7. First Run qBittorrent Setup
 
-**IMPORTANT**: The first run will fail to set the port until you configure qBittorrent settings.
+On first startup, qBittorrent generates a temporary password. The watchdog will automatically detect this, log in with the temp password, and update it to the `QBT_PASS` value from your `.env` file. You can check this happened in the watchdog logs:
+
+```bash
+docker compose logs gluetun-qbt-watchdog
+```
+
+If you prefer to set the password manually:
 
 1. **Get temporary password**:
    ```bash
-   docker-compose logs qbittorrent | grep "temporary password"
+   docker compose logs qbittorrent | grep "temporary password"
    ```
-   Look for: `The WebUI administrator password was not set. A temporary password is provided for this session: [PASSWORD]`
 
 2. **Access qBittorrent WebUI**:
    - Go to `http://your-hostname/qbittorrent` (via Traefik)
@@ -308,7 +327,7 @@ Port forwarding is automatically configured for better torrent performance:
 3. **Configure WebUI settings**:
    - Click the blue circle gear icon (⚙️) for Options
    - Go to the **WebUI** tab
-   - Set your own username and password
+   - Set your username and password to match `QBT_USER`/`QBT_PASS` from `.env`
    - **Important**: Check "Bypass authentication for clients on localhost"
    - Scroll down and click **Save**
 

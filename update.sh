@@ -113,7 +113,7 @@ else
     echo "========================================="
     
     # Use docker compose up -d which will only restart containers with new images
-    if docker compose up -d; then
+    if docker compose up -d --build; then
         echo -e "${GREEN}Stack updated successfully${NC}"
     else
         echo -e "${RED}Failed to update stack${NC}"

@@ -198,6 +198,27 @@ else
     fi
 fi
 
+# Generate Gluetun API key for the HTTP control server
+if [ -n "$GLUETUN_API_KEY" ] && [ "$GLUETUN_API_KEY" != "your_gluetun_api_key_here" ] && [ "$GLUETUN_API_KEY" != "" ]; then
+    echo -e "${GREEN}Using existing Gluetun API key${NC}"
+    NEW_GLUETUN_API_KEY="$GLUETUN_API_KEY"
+else
+    echo -e "${BLUE}Generating Gluetun API key for the HTTP control server...${NC}"
+    if command -v openssl >/dev/null 2>&1; then
+        NEW_GLUETUN_API_KEY=$(openssl rand -base64 16 | tr -d '/+=' | head -c 22)
+        echo -e "${GREEN}Generated Gluetun API key${NC}"
+    else
+        echo -e "${YELLOW}OpenSSL not found. Using fallback method...${NC}"
+        if [ -r /dev/urandom ]; then
+            NEW_GLUETUN_API_KEY=$(head -c 16 /dev/urandom | base64 | tr -d '/+=' | head -c 22)
+            echo -e "${GREEN}Generated Gluetun API key${NC}"
+        else
+            echo -e "${RED}Cannot generate key automatically${NC}"
+            prompt_with_default "Gluetun API key (generate with: docker run --rm qmcgaw/gluetun genkey):" "${GLUETUN_API_KEY:-your_gluetun_api_key_here}" "NEW_GLUETUN_API_KEY"
+        fi
+    fi
+fi
+
 echo ""
 echo "========================================="
 echo "Media Storage Paths"
@@ -243,6 +264,16 @@ NEW_WIREGUARD_PRIVATE_KEY="${NEW_WIREGUARD_PRIVATE_KEY:-your_wireguard_private_k
 
 echo ""
 echo "========================================="
+echo "qBittorrent Configuration"
+echo "========================================="
+
+echo -e "${BLUE}qBittorrent Web UI credentials (also used by the port forwarding watchdog):${NC}"
+prompt_with_default "qBittorrent username:" "${QBT_USER:-admin}" "NEW_QBT_USER"
+prompt_optional "qBittorrent password:" "NEW_QBT_PASS" "${QBT_PASS}"
+NEW_QBT_PASS="${NEW_QBT_PASS:-your_qbittorrent_password}"
+
+echo ""
+echo "========================================="
 echo "qBittorrent Categories"
 echo "========================================="
 
@@ -282,6 +313,13 @@ OPENVPN_PASSWORD=$NEW_OPENVPN_PASSWORD
 
 # Wireguard config
 WIREGUARD_PRIVATE_KEY=$NEW_WIREGUARD_PRIVATE_KEY
+
+# Gluetun control server (used by the port forwarding watchdog)
+GLUETUN_API_KEY=$NEW_GLUETUN_API_KEY
+
+# qBittorrent Web UI credentials (used by the port forwarding watchdog)
+QBT_USER=$NEW_QBT_USER
+QBT_PASS=$NEW_QBT_PASS
 EOF
 
 echo -e "${GREEN}Configuration written to .env file!${NC}"
@@ -330,7 +368,7 @@ After=docker.service
 [Service]
 Restart=always
 WorkingDirectory=$CURRENT_DIR
-ExecStart=/usr/bin/docker compose up
+ExecStart=/usr/bin/docker compose up --build
 ExecStop=/usr/bin/docker compose down
 
 [Install]
