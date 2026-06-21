@@ -368,7 +368,7 @@ After=docker.service
 [Service]
 Restart=always
 WorkingDirectory=$CURRENT_DIR
-ExecStart=/usr/bin/docker compose up --build
+ExecStart=/usr/bin/docker compose up
 ExecStop=/usr/bin/docker compose down
 
 [Install]

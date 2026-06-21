@@ -339,7 +339,7 @@ services:
 # GLUETUN-QBT-WATCHDOG
 ############################
   gluetun-qbt-watchdog:
-    build: ./gluetun-qbt-watchdog
+    image: ghcr.io/brunoorsolon/gluetun-qbt-watchdog:latest
     container_name: gluetun-qbt-watchdog
     restart: unless-stopped
     networks:
@@ -356,6 +356,8 @@ services:
       - QBT_API=http://gluetun:8080
       - QBT_USER=${QBT_USER}
       - QBT_PASS=${QBT_PASS}
+      - QBT_API_KEY=${QBT_API_KEY:-}
+      - QBT_AUTH_MODE=${QBT_AUTH_MODE:-auto}
       - QBT_CONTAINER_NAME=qbittorrent
       - CHECK_INTERVAL=60
       - HEARTBEAT_CYCLE_FREQUENCY=10
