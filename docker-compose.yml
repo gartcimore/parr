@@ -30,12 +30,17 @@ services:
       - --providers.docker.endpoint=tcp://socket-proxy:2375
       - --providers.docker.exposedbydefault=false
       - --providers.docker.network=traefik
+      - --providers.file.directory=/etc/traefik/dynamic
+      - --providers.file.watch=true
       - --entrypoints.web.address=:80
       - --entrypoints.websecure.address=:443
     ports:
       - "80:80"
       - "443:443"
       - "8081:8080"
+    volumes:
+      - ./traefik/dynamic:/etc/traefik/dynamic:ro
+      - ${CERTS_DIR}:/certs:ro
     networks:
       - traefik
       - socket_proxy
@@ -95,6 +100,14 @@ services:
       # - "traefik.http.middlewares.radarr-headers.headers.customrequestheaders.X-Forwarded-For=127.0.0.1"
       - "traefik.http.middlewares.radarr-headers.headers.customrequestheaders.X-Forwarded-Prefix=/radarr"
       - "traefik.http.routers.radarr.middlewares=radarr-headers"
+      # Hostname-based HTTPS route: https://radarr.${DOMAIN}
+      - "traefik.http.routers.radarr-tls.rule=Host(`radarr.${DOMAIN}`)"
+      - "traefik.http.routers.radarr-tls.entrypoints=websecure"
+      - "traefik.http.routers.radarr-tls.tls=true"
+      - "traefik.http.routers.radarr-tls.service=radarr"
+      - "traefik.http.routers.radarr-http.rule=Host(`radarr.${DOMAIN}`)"
+      - "traefik.http.routers.radarr-http.entrypoints=web"
+      - "traefik.http.routers.radarr-http.middlewares=redirect-https@file"
     restart: unless-stopped
 
 ############################
@@ -124,6 +137,14 @@ services:
       - "traefik.http.middlewares.sonarr-headers.headers.customrequestheaders.X-Forwarded-Host=${HOSTNAME}"
       - "traefik.http.middlewares.sonarr-headers.headers.customrequestheaders.X-Forwarded-Prefix=/sonarr"
       - "traefik.http.routers.sonarr.middlewares=sonarr-headers"
+      # Hostname-based HTTPS route: https://sonarr.${DOMAIN}
+      - "traefik.http.routers.sonarr-tls.rule=Host(`sonarr.${DOMAIN}`)"
+      - "traefik.http.routers.sonarr-tls.entrypoints=websecure"
+      - "traefik.http.routers.sonarr-tls.tls=true"
+      - "traefik.http.routers.sonarr-tls.service=sonarr"
+      - "traefik.http.routers.sonarr-http.rule=Host(`sonarr.${DOMAIN}`)"
+      - "traefik.http.routers.sonarr-http.entrypoints=web"
+      - "traefik.http.routers.sonarr-http.middlewares=redirect-https@file"
     restart: unless-stopped
 
 ############################
@@ -152,6 +173,14 @@ services:
       - "traefik.http.middlewares.bazarr-headers.headers.customrequestheaders.X-Forwarded-Host=${HOSTNAME}"
       - "traefik.http.middlewares.bazarr-headers.headers.customrequestheaders.X-Forwarded-Prefix=/bazarr"
       - "traefik.http.routers.bazarr.middlewares=bazarr-headers"
+      # Hostname-based HTTPS route: https://bazarr.${DOMAIN}
+      - "traefik.http.routers.bazarr-tls.rule=Host(`bazarr.${DOMAIN}`)"
+      - "traefik.http.routers.bazarr-tls.entrypoints=websecure"
+      - "traefik.http.routers.bazarr-tls.tls=true"
+      - "traefik.http.routers.bazarr-tls.service=bazarr"
+      - "traefik.http.routers.bazarr-http.rule=Host(`bazarr.${DOMAIN}`)"
+      - "traefik.http.routers.bazarr-http.entrypoints=web"
+      - "traefik.http.routers.bazarr-http.middlewares=redirect-https@file"
     restart: unless-stopped
 
 ############################
@@ -207,6 +236,7 @@ services:
       - traefik
     labels:
       - "traefik.enable=true"
+      # Path-based HTTP route: http://${HOSTNAME}/jellyfin
       - "traefik.http.routers.jellyfin.rule=Host(`${HOSTNAME}`) && (PathPrefix(`/jellyfin`))"
       - "traefik.http.routers.jellyfin.entrypoints=web"
       - "traefik.http.services.jellyfin.loadbalancer.server.port=8096"
@@ -215,6 +245,15 @@ services:
       # - "traefik.http.middlewares.jellyfin-headers.headers.customrequestheaders.X-Forwarded-For=127.0.0.1"
       - "traefik.http.middlewares.jellyfin-headers.headers.customrequestheaders.X-Forwarded-Prefix=/jellyfin"
       - "traefik.http.routers.jellyfin.middlewares=jellyfin-headers"
+      # Hostname-based HTTPS route: https://jellyfin.${DOMAIN} (uses wildcard cert from acme)
+      - "traefik.http.routers.jellyfin-tls.rule=Host(`jellyfin.${DOMAIN}`)"
+      - "traefik.http.routers.jellyfin-tls.entrypoints=websecure"
+      - "traefik.http.routers.jellyfin-tls.tls=true"
+      - "traefik.http.routers.jellyfin-tls.service=jellyfin"
+      # Redirect plain HTTP on the hostname to HTTPS
+      - "traefik.http.routers.jellyfin-http.rule=Host(`jellyfin.${DOMAIN}`)"
+      - "traefik.http.routers.jellyfin-http.entrypoints=web"
+      - "traefik.http.routers.jellyfin-http.middlewares=redirect-https@file"
     restart: unless-stopped
 
 ############################
@@ -243,6 +282,14 @@ services:
       - "traefik.http.middlewares.seerr-headers.headers.customrequestheaders.X-Forwarded-Host=${HOSTNAME}"
       - "traefik.http.middlewares.seerr-headers.headers.customrequestheaders.X-Forwarded-Prefix=/seerr"
       - "traefik.http.routers.seerr.middlewares=seerr-headers,seerr-stripprefix"
+      # Hostname-based HTTPS route: https://seerr.${DOMAIN} (served at root, no stripprefix)
+      - "traefik.http.routers.seerr-tls.rule=Host(`seerr.${DOMAIN}`)"
+      - "traefik.http.routers.seerr-tls.entrypoints=websecure"
+      - "traefik.http.routers.seerr-tls.tls=true"
+      - "traefik.http.routers.seerr-tls.service=seerr"
+      - "traefik.http.routers.seerr-http.rule=Host(`seerr.${DOMAIN}`)"
+      - "traefik.http.routers.seerr-http.entrypoints=web"
+      - "traefik.http.routers.seerr-http.middlewares=redirect-https@file"
     restart: unless-stopped
 
 ############################
