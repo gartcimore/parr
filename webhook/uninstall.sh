@@ -49,6 +49,6 @@ ok "    done"
 
 echo
 ok "parr-webhook uninstalled."
-echo "Note: the Traefik dynamic config at webhook/traefik/webhook.yml is NOT"
-echo "removed automatically. Delete it from parr/traefik/dynamic/ if you also"
-echo "want to drop the /webhook/* route."
+echo "Note: the Traefik dynamic config at traefik/dynamic/webhook.yml is NOT"
+echo "removed automatically. Delete it if you also want to drop the"
+echo "/webhook/* route from Traefik."

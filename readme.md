@@ -157,7 +157,7 @@ After `setup.sh` (which auto-generates `WEBHOOK_TOKEN` in `.env`):
 sudo ./webhook/install.sh
 ```
 
-The installer is idempotent. It installs the `webhook` binary, creates a `parr-webhook` system user, drops a `visudo`-validated sudoers rule, and enables a systemd service listening on port `WEBHOOK_PORT` (default 9000). Traefik picks up the new dynamic config from `webhook/traefik/webhook.yml` automatically once `docker compose up -d` runs.
+The installer is idempotent. It installs the `webhook` binary, creates a `parr-webhook` system user, drops a `visudo`-validated sudoers rule, and enables a systemd service listening on port `WEBHOOK_PORT` (default 9000). Traefik picks up the dynamic config from `traefik/dynamic/webhook.yml` automatically once `docker compose up -d` runs.
 
 ### Test
 
