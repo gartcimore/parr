@@ -219,6 +219,26 @@ else
     fi
 fi
 
+# Generate webhook token for the host-side parr-webhook daemon (Homarr reboot tile)
+if [ -n "$WEBHOOK_TOKEN" ] && [ "$WEBHOOK_TOKEN" != "your_webhook_token_here" ] && [ "$WEBHOOK_TOKEN" != "" ]; then
+    echo -e "${GREEN}Using existing webhook token${NC}"
+    NEW_WEBHOOK_TOKEN="$WEBHOOK_TOKEN"
+else
+    echo -e "${BLUE}Generating webhook token for parr-webhook daemon...${NC}"
+    if command -v openssl >/dev/null 2>&1; then
+        NEW_WEBHOOK_TOKEN=$(openssl rand -hex 32)
+        echo -e "${GREEN}Generated 64-character webhook token${NC}"
+    elif [ -r /dev/urandom ]; then
+        NEW_WEBHOOK_TOKEN=$(head -c 32 /dev/urandom | xxd -p -c 32)
+        echo -e "${GREEN}Generated 64-character webhook token${NC}"
+    else
+        echo -e "${RED}Cannot generate secure token automatically${NC}"
+        prompt_with_default "Webhook token (64 characters):" "${WEBHOOK_TOKEN:-$(date +%s | sha256sum | head -c 64)}" "NEW_WEBHOOK_TOKEN"
+    fi
+fi
+
+NEW_WEBHOOK_PORT="${WEBHOOK_PORT:-9000}"
+
 echo ""
 echo "========================================="
 echo "Media Storage Paths"
@@ -320,6 +340,10 @@ GLUETUN_API_KEY=$NEW_GLUETUN_API_KEY
 # qBittorrent Web UI credentials (used by the port forwarding watchdog)
 QBT_USER=$NEW_QBT_USER
 QBT_PASS=$NEW_QBT_PASS
+
+# parr-webhook (host-side reboot/shutdown button for Homarr)
+WEBHOOK_TOKEN=$NEW_WEBHOOK_TOKEN
+WEBHOOK_PORT=$NEW_WEBHOOK_PORT
 EOF
 
 echo -e "${GREEN}Configuration written to .env file!${NC}"
@@ -424,6 +448,8 @@ else
     echo "3. Run: docker-compose up -d"
 fi
 echo "4. Configure your local DNS to point $NEW_HOSTNAME to this machine's IP"
+echo "5. (Optional) Install the host-side webhook for the Homarr reboot tile:"
+echo "     sudo ./webhook/install.sh"
 echo ""
 echo -e "${GREEN}All directories have been created with proper permissions!${NC}"
 echo -e "${YELLOW}If you encounter permission issues, you may need to adjust ownership manually.${NC}"

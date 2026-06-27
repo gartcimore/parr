@@ -1,0 +1,11 @@
+# parr-webhook sudoers drop-in
+# Grants the parr-webhook service user permission to run exactly the commands
+# needed by the action scripts. Nothing else.
+#
+# This file is installed at /etc/sudoers.d/parr-webhook by install.sh, after
+# being validated with `visudo -cf`.
+
+parr-webhook ALL=(root) NOPASSWD: /sbin/reboot
+parr-webhook ALL=(root) NOPASSWD: /sbin/poweroff
+parr-webhook ALL=(root) NOPASSWD: /usr/bin/docker compose restart
+parr-webhook ALL=(root) NOPASSWD: /usr/bin/docker compose -f * restart
