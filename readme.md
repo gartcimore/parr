@@ -20,9 +20,12 @@ flowchart TD
     Traefik --> Seerr[Seerr :5055]
     Traefik --> Homarr[Homarr :7575]
     Traefik --> Gluetun[Gluetun VPN :8080]
+    Traefik --> Webhook[parr-webhook :9000<br/>host-side]
     Gluetun --> QBittorrent[qBittorrent]
     
     Homarr -.-> DockerSocket
+    Homarr -. POST /webhook/* .-> Traefik
+    Webhook --> HostActions[reboot / shutdown<br/>restart stack]
     
     subgraph SocketNet[Socket Proxy Network]
         SocketProxy
@@ -43,6 +46,8 @@ flowchart TD
     
     subgraph Host[Host System]
         DockerSocket
+        Webhook
+        HostActions
     end
 ```
 
@@ -134,8 +139,55 @@ Once configured, access your services at:
 - **Seerr**: `http://your-hostname.local/seerr` ❌ *No reverse proxy support*
 - **Homarr**: `http://your-hostname.local/homarr` ❌ *Routing issues*
 - **qBittorrent**: `http://your-hostname.local/qbittorrent` ✅
+- **parr-webhook** (host actions): `http://your-hostname.local/webhook/<action>` ✅ *POST only, requires `X-Auth-Token` header*
 
 **Note**: Services marked with ❌ or ⚠️ may require additional configuration or have known issues with reverse proxy routing.
+
+## Host Actions from Homarr (parr-webhook)
+
+This stack ships an optional **host-side webhook daemon** so you can wire a tile in your Homarr dashboard to reboot the host, power it off, or restart the docker stack. The dashboard cannot do this on its own — a button inside a container can't reboot its host without effectively becoming root on the box. The webhook daemon ([adnanh/webhook](https://github.com/adnanh/webhook)) runs **on the host** as a non-privileged service with `NOPASSWD` sudo limited to three commands.
+
+See [`webhook/README.md`](./webhook/README.md) for the full architecture and how to add more actions.
+
+### Install
+
+After `setup.sh` (which auto-generates `WEBHOOK_TOKEN` in `.env`):
+
+```bash
+sudo ./webhook/install.sh
+```
+
+The installer is idempotent. It installs the `webhook` binary, creates a `parr-webhook` system user, drops a `visudo`-validated sudoers rule, and enables a systemd service listening on port `WEBHOOK_PORT` (default 9000). Traefik picks up the dynamic config from `traefik/dynamic/webhook.yml` automatically once `docker compose up -d` runs.
+
+### Test
+
+```bash
+TOKEN=$(grep ^WEBHOOK_TOKEN= .env | cut -d= -f2)
+
+# Direct to the host daemon
+curl -X POST -H "X-Auth-Token: $TOKEN" http://localhost:9000/webhook/reboot
+
+# Through Traefik (same hostname as the rest of the stack)
+curl -X POST -H "X-Auth-Token: $TOKEN" http://your-hostname.local/webhook/reboot
+```
+
+Available actions out of the box: `reboot`, `shutdown`, `restart-docker`.
+
+### Wire it into Homarr
+
+In Homarr, edit the board and add a **Custom Widget**:
+
+- URL: `http://your-hostname.local/webhook/reboot`
+- Method: `POST`
+- Headers: `X-Auth-Token: <your WEBHOOK_TOKEN from .env>`
+
+Repeat with `/webhook/shutdown` or `/webhook/restart-docker` for the other tiles. Label them clearly — a misclick reboots the box.
+
+### Uninstall
+
+```bash
+sudo ./webhook/uninstall.sh
+```
 
 ## Manual Configuration
 

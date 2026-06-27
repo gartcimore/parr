@@ -41,6 +41,10 @@ services:
     volumes:
       - ./traefik/dynamic:/etc/traefik/dynamic:ro
       - ${CERTS_DIR}:/certs:ro
+    # Required so the parr-webhook dynamic config (traefik/dynamic/webhook.yml)
+    # can reach the host-side webhook daemon via http://host.docker.internal:9000
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks:
       - traefik
       - socket_proxy

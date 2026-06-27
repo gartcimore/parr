@@ -1,0 +1,26 @@
+[Unit]
+Description=parr webhook daemon (adnanh/webhook)
+After=network.target
+
+[Service]
+Type=simple
+User=parr-webhook
+Group=parr-webhook
+# -urlprefix webhook makes hooks served at /webhook/<id> instead of /hooks/<id>
+# so Traefik can pass the path through unchanged.
+ExecStart=/usr/bin/webhook \
+    -hooks /etc/parr-webhook/hooks.json \
+    -ip 0.0.0.0 \
+    -port __WEBHOOK_PORT__ \
+    -urlprefix webhook \
+    -verbose
+Restart=on-failure
+RestartSec=5s
+
+# Hardening
+ProtectSystem=full
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
