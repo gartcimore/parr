@@ -158,10 +158,12 @@ test_volume_mounts() {
     local config=$($COMPOSE_CMD config 2>/dev/null)
     
     # Check that services have proper config volume mounts
+    # Window must be large enough to cover labels (compose config emits keys alphabetically,
+    # so 'volumes' appears after 'labels' which can be lengthy for Traefik-routed services).
     local services_with_config=("prowlarr" "radarr" "sonarr" "bazarr" "lidarr" "jellyfin" "seerr" "homarr" "gluetun" "qbittorrent")
     
     for service in "${services_with_config[@]}"; do
-        if ! echo "$config" | grep -A 20 "${service}:" | grep -q "DOCKER_CONFIG_DIR"; then
+        if ! echo "$config" | grep -A 80 "${service}:" | grep -q "DOCKER_CONFIG_DIR"; then
             print_warn "Service $service may be missing config volume mount"
         fi
     done
@@ -170,7 +172,7 @@ test_volume_mounts() {
     local arr_services=("radarr" "sonarr" "bazarr" "lidarr")
     
     for service in "${arr_services[@]}"; do
-        if ! echo "$config" | grep -A 30 "${service}:" | grep -E "(:/data|target: /data)"; then
+        if ! echo "$config" | grep -A 80 "${service}:" | grep -E "(:/data|target: /data)"; then
             print_fail "Service $service missing data volume mount"
             return 1
         fi
