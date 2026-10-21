@@ -344,6 +344,7 @@ QBT_PASS=$NEW_QBT_PASS
 # parr-webhook (host-side reboot/shutdown button for Homarr)
 WEBHOOK_TOKEN=$NEW_WEBHOOK_TOKEN
 WEBHOOK_PORT=$NEW_WEBHOOK_PORT
+WEBHOOK_IP=${WEBHOOK_IP:-0.0.0.0}
 EOF
 
 echo -e "${GREEN}Configuration written to .env file!${NC}"

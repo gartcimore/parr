@@ -1,0 +1,31 @@
+# TEMPLATE — do not edit the rendered traefik/dynamic/webhook.yml by hand.
+#
+# install.sh renders this into traefik/dynamic/webhook.yml, substituting
+# __WEBHOOK_PORT__ with WEBHOOK_PORT from .env (default 9000). Keeping the port
+# in one place avoids the Traefik 502 you get when .env and this URL drift.
+#
+# Dynamic Traefik configuration exposing the host-side parr-webhook daemon
+# under /webhook/* on the same Traefik instance/hostname as the rest of parr.
+#
+# The webhook daemon listens on the *host* (not in a container). We reach it
+# from inside the Traefik container via the Docker bridge gateway, mapped to
+# host.docker.internal using `extra_hosts: host-gateway` on the Traefik service
+# in docker-compose.yml.
+#
+# The webhook daemon is configured with `-urlprefix webhook` so it serves hooks
+# at /webhook/<id>. The path is passed through unchanged from Traefik (no
+# stripPrefix needed).
+
+http:
+  routers:
+    parr-webhook:
+      rule: "PathPrefix(`/webhook`)"
+      entryPoints:
+        - web
+      service: parr-webhook
+
+  services:
+    parr-webhook:
+      loadBalancer:
+        servers:
+          - url: "http://host.docker.internal:__WEBHOOK_PORT__"

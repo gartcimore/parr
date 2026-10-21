@@ -51,8 +51,11 @@ The installer is idempotent. It will:
 
 ```bash
 TOKEN=$(grep ^WEBHOOK_TOKEN= .env | cut -d= -f2)
-curl -X POST -H "X-Auth-Token: $TOKEN" http://localhost:9000/hooks/reboot
+curl -X POST -H "X-Auth-Token: $TOKEN" http://localhost:9000/webhook/reboot
 ```
+
+> The daemon runs with `-urlprefix webhook`, so hooks are served at
+> `/webhook/<id>`, not `/hooks/<id>`.
 
 ## Test through Traefik
 
@@ -76,7 +79,10 @@ Repeat for `shutdown` and `restart-docker` if you want tiles for those.
 
 1. Drop a script at `webhook/scripts/<action>.sh`
 2. Add an entry to `webhook/hooks.json.template` mirroring the existing ones
-3. If the script needs privileged commands, add them to `webhook/sudoers/parr-webhook`
+3. If the script needs privileged commands, add them to
+   `webhook/sudoers/parr-webhook`. Grant the **exact** command with full
+   arguments — avoid wildcards, especially on anything like `docker`, `tee`,
+   `find -exec`, or a shell, since those turn a narrow grant into full root.
 4. Re-run `sudo ./webhook/install.sh`
 
 ## Uninstall
@@ -90,9 +96,21 @@ your Traefik dynamic config or `.env`.
 
 ## Security notes
 
-- The token is the only thing between a network scan and a reboot. Don't expose
-  port 9000 publicly. The Traefik route is fine on the LAN.
+- The token is the only thing between a network scan and a reboot. It's a plain
+  shared secret compared as a header value — no rate limiting, no replay
+  protection. Keep it private and keep the daemon off the public internet.
+- The daemon binds `WEBHOOK_IP` (default `0.0.0.0`) because Traefik reaches it
+  over the docker bridge and can't use `127.0.0.1`. `0.0.0.0` also exposes it on
+  the LAN, so **firewall `WEBHOOK_PORT` to the docker bridge interface only**.
+  Access should come through Traefik, not directly to the port.
 - `/etc/parr-webhook/hooks.json` is mode 0640, owned by `root:parr-webhook`.
 - The `parr-webhook` user has nologin shell and no home directory.
-- Sudoers grants exactly three commands, nothing else.
+- Sudoers grants exactly three commands: `/sbin/reboot`, `/sbin/poweroff`, and
+  `docker compose -f <this stack's compose file> restart`. The docker command is
+  pinned to the exact compose path — **no wildcard** — because a sudo wildcard on
+  `docker compose` is effectively unrestricted root (an attacker could point
+  `-f` at a compose file that mounts the host filesystem).
+- The systemd unit is hardened (`ProtectSystem`, `ProtectHome`, `PrivateTmp`,
+  `RestrictAddressFamilies`, `MemoryDenyWriteExecute`, etc.). `NoNewPrivileges`
+  is intentionally left off because the action scripts need sudo.
 - A misclick reboots your stack. Label your Homarr tiles clearly.
