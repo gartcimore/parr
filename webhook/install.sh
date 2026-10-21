@@ -42,6 +42,8 @@ fi
 WEBHOOK_TOKEN="$(grep -E '^WEBHOOK_TOKEN=' "$ENV_FILE" | head -1 | cut -d= -f2- | tr -d '"'"'")"
 WEBHOOK_PORT="$(grep -E '^WEBHOOK_PORT=' "$ENV_FILE" | head -1 | cut -d= -f2- | tr -d '"'"'")"
 WEBHOOK_PORT="${WEBHOOK_PORT:-9000}"
+WEBHOOK_IP="$(grep -E '^WEBHOOK_IP=' "$ENV_FILE" | head -1 | cut -d= -f2- | tr -d '"'"'")"
+WEBHOOK_IP="${WEBHOOK_IP:-0.0.0.0}"
 
 if [ -z "$WEBHOOK_TOKEN" ] || [ "$WEBHOOK_TOKEN" = "your_webhook_token_here" ]; then
     fail "WEBHOOK_TOKEN is missing or unset in $ENV_FILE"
@@ -109,7 +111,10 @@ ok "    parr-webhook-reboot, parr-webhook-shutdown, parr-webhook-restart-docker"
 
 # ---------- step 5: sudoers drop-in ----------
 info "==> installing sudoers drop-in"
-cp "$SCRIPT_DIR/sudoers/parr-webhook" "$SUDOERS_TMP"
+# Template the real compose path into the pinned docker rule so the grant is
+# restricted to this one stack (no wildcard). Must match restart-docker.sh.
+sed "s|__PARR_COMPOSE_DIR__|${PARR_DIR}|g" \
+    "$SCRIPT_DIR/sudoers/parr-webhook" > "$SUDOERS_TMP"
 chmod 0440 "$SUDOERS_TMP"
 if visudo -cf "$SUDOERS_TMP" >/dev/null; then
     install -m 0440 -o root -g root "$SUDOERS_TMP" "$SUDOERS_FILE"
@@ -119,9 +124,22 @@ else
     exit 1
 fi
 
-# ---------- step 6: systemd unit ----------
+# ---------- step 6: traefik dynamic route (render port) ----------
+info "==> rendering traefik webhook route"
+TRAEFIK_WEBHOOK_TEMPLATE="$PARR_DIR/traefik/dynamic/webhook.yml.template"
+TRAEFIK_WEBHOOK_OUT="$PARR_DIR/traefik/dynamic/webhook.yml"
+if [ -f "$TRAEFIK_WEBHOOK_TEMPLATE" ]; then
+    sed "s|__WEBHOOK_PORT__|${WEBHOOK_PORT}|g" \
+        "$TRAEFIK_WEBHOOK_TEMPLATE" > "$TRAEFIK_WEBHOOK_OUT"
+    ok "    wrote $TRAEFIK_WEBHOOK_OUT (port $WEBHOOK_PORT)"
+else
+    warn "    $TRAEFIK_WEBHOOK_TEMPLATE not found; leaving existing webhook.yml as-is"
+fi
+
+# ---------- step 7: systemd unit ----------
 info "==> installing systemd unit"
-sed "s|__WEBHOOK_PORT__|${WEBHOOK_PORT}|g" \
+sed -e "s|__WEBHOOK_PORT__|${WEBHOOK_PORT}|g" \
+    -e "s|__WEBHOOK_IP__|${WEBHOOK_IP}|g" \
     "$SCRIPT_DIR/systemd/parr-webhook.service" > "$SYSTEMD_UNIT"
 chmod 0644 "$SYSTEMD_UNIT"
 systemctl daemon-reload

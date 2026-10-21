@@ -1,17 +1,19 @@
+# GENERATED from webhook.yml.template by webhook/install.sh — edits may be
+# overwritten. To change the port, set WEBHOOK_PORT in .env and re-run
+# `sudo ./webhook/install.sh`. This committed copy defaults to 9000 so Traefik
+# works even before the installer has run.
+#
 # Dynamic Traefik configuration exposing the host-side parr-webhook daemon
 # under /webhook/* on the same Traefik instance/hostname as the rest of parr.
 #
-# The webhook daemon listens on the *host* (not in a container) at
-# 0.0.0.0:9000 by default. We reach it from inside the Traefik container via
-# the Docker bridge gateway, which we map to host.docker.internal using
-# `extra_hosts: host-gateway` on the Traefik service in docker-compose.yml.
+# The webhook daemon listens on the *host* (not in a container). We reach it
+# from inside the Traefik container via the Docker bridge gateway, mapped to
+# host.docker.internal using `extra_hosts: host-gateway` on the Traefik service
+# in docker-compose.yml.
 #
-# The webhook daemon is configured with `-urlprefix webhook` so it serves
-# hooks at /webhook/<id>. The path is passed through unchanged from Traefik
-# (no stripPrefix needed).
-#
-# Override the port by editing both `WEBHOOK_PORT` in .env *and* the URL
-# below, then restart traefik (or wait for the file provider to pick it up).
+# The webhook daemon is configured with `-urlprefix webhook` so it serves hooks
+# at /webhook/<id>. The path is passed through unchanged from Traefik (no
+# stripPrefix needed).
 
 http:
   routers:
