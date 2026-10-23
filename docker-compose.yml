@@ -399,12 +399,24 @@ services:
     networks:
       - traefik
     labels:
-    #  - "traefik.enable=true"
+      - "traefik.enable=true"
+      # Path route: http://${HOSTNAME}/qbittorrent (stripprefix so qbit sees /)
       - "traefik.http.routers.qbittorrent.rule=Host(`${HOSTNAME}`) && PathPrefix(`/qbittorrent`)"
       - "traefik.http.routers.qbittorrent.entrypoints=web"
       - "traefik.http.services.qbittorrent.loadbalancer.server.port=8080"
       - "traefik.http.middlewares.qbittorrent-stripprefix.stripprefix.prefixes=/qbittorrent"
       - "traefik.http.routers.qbittorrent.middlewares=qbittorrent-stripprefix"
+      # Hostname-based HTTPS route: https://qbittorrent.${DOMAIN} (served at root)
+      # NOTE: qBittorrent does Host-header validation. In qbit WebUI settings add
+      # qbittorrent.${DOMAIN} to "Server domains" (or disable host-header
+      # validation), or it will answer 401 Unauthorized to this route.
+      - "traefik.http.routers.qbittorrent-tls.rule=Host(`qbittorrent.${DOMAIN}`)"
+      - "traefik.http.routers.qbittorrent-tls.entrypoints=websecure"
+      - "traefik.http.routers.qbittorrent-tls.tls=true"
+      - "traefik.http.routers.qbittorrent-tls.service=qbittorrent"
+      - "traefik.http.routers.qbittorrent-http.rule=Host(`qbittorrent.${DOMAIN}`)"
+      - "traefik.http.routers.qbittorrent-http.entrypoints=web"
+      - "traefik.http.routers.qbittorrent-http.middlewares=redirect-https@file"
     restart: unless-stopped
 
 
