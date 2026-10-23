@@ -161,15 +161,16 @@ ok "parr-webhook installed."
 ok "============================================="
 cat <<EOF
 
-Test locally:
-  curl -X POST -H "X-Auth-Token: \$WEBHOOK_TOKEN" \\
-       http://localhost:${WEBHOOK_PORT}/webhook/reboot
+Test locally (restart-docker is the least disruptive of the three actions —
+it bounces the Docker daemon; reboot/shutdown affect the whole host):
+  TOKEN=\$(grep ^WEBHOOK_TOKEN= .env | cut -d= -f2)
+  curl -X POST -H "X-Auth-Token: \$TOKEN" \\
+       http://localhost:${WEBHOOK_PORT}/webhook/restart-docker
 
-After Traefik picks up the new dynamic config and docker-compose.yml has
-\`extra_hosts: host-gateway\` on traefik (run \`docker compose up -d traefik\`):
-
-  curl -X POST -H "X-Auth-Token: \$WEBHOOK_TOKEN" \\
-       http://\${HOSTNAME}/webhook/reboot
+Through Traefik over HTTPS (needs a DNS record webhook.\${DOMAIN} and
+\`extra_hosts: host-gateway\` on the traefik service):
+  curl -X POST -H "X-Auth-Token: \$TOKEN" \\
+       https://webhook.\${DOMAIN}/webhook/restart-docker
 
 Add a Homarr Custom Widget pointing at the same URL with the X-Auth-Token
 header to wire it into the dashboard.

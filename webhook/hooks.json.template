@@ -31,7 +31,7 @@
     "id": "restart-docker",
     "execute-command": "/usr/local/bin/parr-webhook-restart-docker",
     "command-working-directory": "/",
-    "response-message": "Restarting parr docker stack...",
+    "response-message": "Restarting the Docker daemon...",
     "http-methods": ["POST"],
     "trigger-rule": {
       "match": {
