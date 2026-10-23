@@ -150,19 +150,25 @@ jobs:
         
         echo "✓ Basic services started successfully"
     
-    - name: Test Traefik dashboard accessibility
+    - name: Test Traefik is up
       run: |
         # Wait a bit more for Traefik to be ready
         sleep 10
         
-        # Test Traefik dashboard
-        if ! curl -f http://localhost:8081/api/rawdata > /dev/null 2>&1; then
-          echo "Error: Traefik dashboard not accessible"
+        # The dashboard is no longer served insecurely on :8081. It is exposed
+        # only via an authenticated HTTPS host route (https://heimdall.${DOMAIN}),
+        # which needs DNS + the gitignored basic-auth file and so can't be
+        # cur-tested in CI. Instead, confirm Traefik is serving on the web
+        # entrypoint: an unknown host should get a 404 from Traefik itself,
+        # which proves the router is alive.
+        code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:80/ || true)
+        if [ "$code" = "000" ]; then
+          echo "Error: Traefik is not responding on :80"
           docker-compose logs traefik || docker compose logs traefik
           exit 1
         fi
         
-        echo "✓ Traefik dashboard is accessible"
+        echo "✓ Traefik is responding on the web entrypoint (HTTP $code)"
     
     - name: Cleanup
       run: |
