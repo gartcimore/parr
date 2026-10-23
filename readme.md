@@ -202,6 +202,27 @@ stray `.zip`s). CWA ignores/skips those but won't delete them, so clean leftover
 from `ebooks-ingest` afterwards (never touch `downloads/ebooks` — it's seeding).
 Zip archives are not extracted by CWA; unzip into ingest manually if needed.
 
+### Operational notes on this Pi (learned the hard way)
+
+CWA converts ebooks with Calibre, which is **CPU-heavy**. On this 4-core Pi a
+bulk ingest once spawned enough `calibre-parallel` workers to drive load > 100,
+making the VPN, UIs, and even the shell unresponsive. Two guards are in place:
+
+- **CPU cap**: the service has `cpus: 2.0` in `docker-compose.yml` so conversions
+  can never use more than 2 of 4 cores. Keep it. Still, **feed large libraries in
+  small batches** rather than dumping dozens of books into ingest at once.
+- **Auto-backups OFF**: CWA's "Automatic Backup Settings" (`/cwa-settings`) copy
+  every ingested/converted/fixed original into `/config/processed_books` — on the
+  SD card. A big backfill ballooned that to ~8 GB and filled the root FS to 100%.
+  All four toggles (Import / Conversion / EPUB-Fixer / Auto-Zip) are disabled
+  because the originals are already kept (seeding in qBittorrent) and the library
+  lives on the NAS. If `processed_books` ever grows again, re-check these toggles,
+  then: `docker stop calibre-web-automated && rm -rf /docker/appdata/calibre-web-automated/processed_books/*`.
+
+The root filesystem on this Pi is only ~29 GB. Watch it (`df -h /`); the heavy
+consumers are `/docker/appdata/jellyfin` (metadata/cache) and CWA. Relocating
+those caches to the NAS is a known TODO if space gets tight again.
+
 ## Host Actions from Homarr (parr-webhook)
 
 This stack ships an optional **host-side webhook daemon** so you can wire a tile in your Homarr dashboard to reboot the host, power it off, or restart the docker stack. The dashboard cannot do this on its own — a button inside a container can't reboot its host without effectively becoming root on the box. The webhook daemon ([adnanh/webhook](https://github.com/adnanh/webhook)) runs **on the host** as a non-privileged service with `NOPASSWD` sudo limited to three commands.
