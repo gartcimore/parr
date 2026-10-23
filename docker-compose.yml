@@ -75,6 +75,14 @@ services:
       - "traefik.http.middlewares.prowlarr-headers.headers.customrequestheaders.X-Forwarded-Host=${HOSTNAME}"
       - "traefik.http.middlewares.prowlarr-headers.headers.customrequestheaders.X-Forwarded-Prefix=/prowlarr"
       - "traefik.http.routers.prowlarr.middlewares=prowlarr-headers"
+      # Hostname-based HTTPS route: https://prowlarr.${DOMAIN}
+      - "traefik.http.routers.prowlarr-tls.rule=Host(`prowlarr.${DOMAIN}`)"
+      - "traefik.http.routers.prowlarr-tls.entrypoints=websecure"
+      - "traefik.http.routers.prowlarr-tls.tls=true"
+      - "traefik.http.routers.prowlarr-tls.service=prowlarr"
+      - "traefik.http.routers.prowlarr-http.rule=Host(`prowlarr.${DOMAIN}`)"
+      - "traefik.http.routers.prowlarr-http.entrypoints=web"
+      - "traefik.http.routers.prowlarr-http.middlewares=redirect-https@file"
     restart: unless-stopped
 
 ############################
@@ -213,6 +221,14 @@ services:
       - "traefik.http.middlewares.lidarr-headers.headers.customrequestheaders.X-Forwarded-Host=${HOSTNAME}"
       - "traefik.http.middlewares.lidarr-headers.headers.customrequestheaders.X-Forwarded-Prefix=/lidarr"
       - "traefik.http.routers.lidarr.middlewares=lidarr-headers"
+      # Hostname-based HTTPS route: https://lidarr.${DOMAIN}
+      - "traefik.http.routers.lidarr-tls.rule=Host(`lidarr.${DOMAIN}`)"
+      - "traefik.http.routers.lidarr-tls.entrypoints=websecure"
+      - "traefik.http.routers.lidarr-tls.tls=true"
+      - "traefik.http.routers.lidarr-tls.service=lidarr"
+      - "traefik.http.routers.lidarr-http.rule=Host(`lidarr.${DOMAIN}`)"
+      - "traefik.http.routers.lidarr-http.entrypoints=web"
+      - "traefik.http.routers.lidarr-http.middlewares=redirect-https@file"
     restart: unless-stopped
 
 ############################
@@ -321,6 +337,14 @@ services:
         # - "traefik.http.middlewares.homarr-headers.headers.customrequestheaders.X-Forwarded-For=127.0.0.1"
         - "traefik.http.middlewares.homarr-headers.headers.customrequestheaders.X-Forwarded-Prefix=/homarr"
         - "traefik.http.routers.homarr.middlewares=homarr-headers"
+        # Hostname-based HTTPS route: https://homarr.${DOMAIN}
+        - "traefik.http.routers.homarr-tls.rule=Host(`homarr.${DOMAIN}`)"
+        - "traefik.http.routers.homarr-tls.entrypoints=websecure"
+        - "traefik.http.routers.homarr-tls.tls=true"
+        - "traefik.http.routers.homarr-tls.service=homarr"
+        - "traefik.http.routers.homarr-http.rule=Host(`homarr.${DOMAIN}`)"
+        - "traefik.http.routers.homarr-http.entrypoints=web"
+        - "traefik.http.routers.homarr-http.middlewares=redirect-https@file"
       restart: unless-stopped
 
 ############################
