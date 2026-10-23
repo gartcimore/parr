@@ -56,12 +56,10 @@ services:
       - "traefik.http.routers.dashboard.entrypoints=websecure"
       - "traefik.http.routers.dashboard.tls=true"
       - "traefik.http.routers.dashboard.service=api@internal"
-      - "traefik.http.routers.dashboard.middlewares=dashboard-auth"
-      # Basic auth. Credentials come from .env (TRAEFIK_DASHBOARD_AUTH) as a
-      # user:bcrypt-hash pair. Generate with:
-      #   htpasswd -nbB admin 'yourpassword'
-      # In .env, escape every literal $ in the hash as $$ (compose interpolation).
-      - "traefik.http.middlewares.dashboard-auth.basicauth.users=${TRAEFIK_DASHBOARD_AUTH}"
+      # Basic-auth middleware is defined in the file provider
+      # (traefik/dynamic/dashboard-auth.yml) so the password hash is not subject
+      # to Compose $-interpolation and needs no escaping.
+      - "traefik.http.routers.dashboard.middlewares=dashboard-auth@file"
       # Redirect plain HTTP on the dashboard hostname to HTTPS
       - "traefik.http.routers.dashboard-http.rule=Host(`heimdall.${DOMAIN}`)"
       - "traefik.http.routers.dashboard-http.entrypoints=web"

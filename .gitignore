@@ -68,3 +68,7 @@ hs_err_pid*
 **/.env
 
 appdata/
+
+# Real Traefik dashboard basic-auth file (contains a password hash).
+# Only the .template is committed; create the real file on the host.
+traefik/dynamic/dashboard-auth.yml

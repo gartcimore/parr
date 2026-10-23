@@ -1,0 +1,18 @@
+# TEMPLATE — copy to dashboard-auth.yml and replace the hash. The real
+# dashboard-auth.yml is gitignored so the password hash is never committed.
+#
+# Basic-auth middleware for the Traefik dashboard (https://heimdall.${DOMAIN}).
+# Because this is read by Traefik's file provider directly (not through Docker
+# Compose), paste the htpasswd output VERBATIM — no '$$' doubling needed.
+#
+# Generate a hash without installing anything:
+#   docker run --rm httpd:2.4 htpasswd -nbB admin 'yourpassword'
+# or:
+#   printf 'admin:'; openssl passwd -apr1 'yourpassword'
+
+http:
+  middlewares:
+    dashboard-auth:
+      basicAuth:
+        users:
+          - "admin:$2y$05$REPLACE_WITH_REAL_BCRYPT_HASH"
