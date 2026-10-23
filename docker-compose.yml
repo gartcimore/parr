@@ -474,6 +474,10 @@ services:
   calibre-web-automated:
     image: crocodilestick/calibre-web-automated:latest
     container_name: calibre-web-automated
+    # Cap CPU so Calibre conversions can't saturate the Pi and starve the rest
+    # of the stack (bulk ingests spawn calibre-parallel workers that otherwise
+    # peg all cores -> load spikes, VPN/UI unresponsive). 2 of 4 cores max.
+    cpus: 2.0
     environment:
       - PUID=1000
       - PGID=1000
