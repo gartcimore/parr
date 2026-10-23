@@ -457,6 +457,48 @@ services:
       - TZ=${TZ}
 
 ############################
+# CALIBRE-WEB-AUTOMATED (ebooks)
+############################
+  calibre-web-automated:
+    image: crocodilestick/calibre-web-automated:latest
+    container_name: calibre-web-automated
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=${TZ}
+      # Library lives on the Ymir NFS share; disable WAL to avoid SQLite locking.
+      - NETWORK_SHARE_MODE=true
+      - CWA_PORT_OVERRIDE=8083
+    volumes:
+      - ${DOCKER_CONFIG_DIR}/calibre-web-automated:/config
+      # Ingest: files dropped here are imported then DELETED. qBittorrent copies
+      # completed ebooks into downloads/ebooks-ingest (separate from the seeding
+      # downloads/ebooks category dir), so seeding is never disturbed.
+      - ${DATA_DIR}/downloads/ebooks-ingest:/cwa-book-ingest
+      # Library: fresh folder on the media share, alongside tv/movies.
+      - ${DATA_DIR}/media/ebooks:/calibre-library
+    ports:
+      - 8083:8083
+    networks:
+      - traefik
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.calibre.rule=Host(`${HOSTNAME}`) && PathPrefix(`/calibre`)"
+      - "traefik.http.routers.calibre.entrypoints=web"
+      - "traefik.http.services.calibre.loadbalancer.server.port=8083"
+      - "traefik.http.middlewares.calibre-stripprefix.stripprefix.prefixes=/calibre"
+      - "traefik.http.routers.calibre.middlewares=calibre-stripprefix"
+      # Hostname-based HTTPS route: https://books.${DOMAIN}
+      - "traefik.http.routers.calibre-tls.rule=Host(`books.${DOMAIN}`)"
+      - "traefik.http.routers.calibre-tls.entrypoints=websecure"
+      - "traefik.http.routers.calibre-tls.tls=true"
+      - "traefik.http.routers.calibre-tls.service=calibre"
+      - "traefik.http.routers.calibre-http.rule=Host(`books.${DOMAIN}`)"
+      - "traefik.http.routers.calibre-http.entrypoints=web"
+      - "traefik.http.routers.calibre-http.middlewares=redirect-https@file"
+    restart: unless-stopped
+
+############################
 # NETWORKS
 ############################
 networks:
