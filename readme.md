@@ -204,13 +204,20 @@ Zip archives are not extracted by CWA; unzip into ingest manually if needed.
 
 ### Operational notes on this Pi (learned the hard way)
 
-CWA converts ebooks with Calibre, which is **CPU-heavy**. On this 4-core Pi a
-bulk ingest once spawned enough `calibre-parallel` workers to drive load > 100,
-making the VPN, UIs, and even the shell unresponsive. Two guards are in place:
+CWA converts ebooks with Calibre, which is **CPU- and I/O-heavy**. On this
+4-core Pi a bulk ingest once drove load > 100 (CPU), and later a batch of large
+comic archives (CBZ/CBR, 50-150 MB each) drove ~57% I/O-wait — both made the
+VPN, UIs, and shell unresponsive. Guards in place:
 
-- **CPU cap**: the service has `cpus: 2.0` in `docker-compose.yml` so conversions
-  can never use more than 2 of 4 cores. Keep it. Still, **feed large libraries in
-  small batches** rather than dumping dozens of books into ingest at once.
+- **Auto-conversion is DISABLED** (in `/cwa-settings`). This is the big one:
+  converting comics/large files reads+unpacks+rewrites each file over NFS and is
+  what caused the I/O storms. CBZ/CBR/EPUB are served and read natively by
+  Calibre-Web, so conversion buys nothing here. **Leave it off** unless you have
+  a specific device that needs a format converted — and if you must, do it on a
+  small batch and watch the load.
+- **CPU cap**: the service has `cpus: 2.0` in `docker-compose.yml` so any future
+  conversion can't use more than 2 of 4 cores. Keep it. Still **feed large
+  libraries in small batches** rather than dumping dozens of books into ingest.
 - **Auto-backups OFF**: CWA's "Automatic Backup Settings" (`/cwa-settings`) copy
   every ingested/converted/fixed original into `/config/processed_books` — on the
   SD card. A big backfill ballooned that to ~8 GB and filled the root FS to 100%.
