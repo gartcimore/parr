@@ -59,17 +59,22 @@ curl -X POST -H "X-Auth-Token: $TOKEN" http://localhost:9000/webhook/reboot
 
 ## Test through Traefik
 
-Once Traefik is up with the new dynamic config and `extra_hosts` entry:
+Once Traefik is up with the dynamic config, the `extra_hosts` entry, and a DNS
+record for `webhook.${DOMAIN}` pointing at the Traefik host, the daemon is
+reachable over HTTPS (plain HTTP redirects to HTTPS):
 
 ```bash
-curl -X POST -H "X-Auth-Token: $TOKEN" http://${HOSTNAME}/webhook/reboot
+curl -X POST -H "X-Auth-Token: $TOKEN" https://webhook.${DOMAIN}/webhook/reboot
 ```
+
+The token can reboot/power off the host, so it must only travel over HTTPS —
+that is why the route is `websecure` with an HTTP→HTTPS redirect, not plain HTTP.
 
 ## Wire it into Homarr
 
 Edit the board, add a **Custom Widget** (or app tile that POSTs):
 
-- URL: `http://${HOSTNAME}/webhook/reboot`
+- URL: `https://webhook.${DOMAIN}/webhook/reboot`
 - Method: `POST`
 - Headers: `X-Auth-Token: <your WEBHOOK_TOKEN>`
 

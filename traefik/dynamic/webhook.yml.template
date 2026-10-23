@@ -1,27 +1,35 @@
 # TEMPLATE — do not edit the rendered traefik/dynamic/webhook.yml by hand.
 #
 # install.sh renders this into traefik/dynamic/webhook.yml, substituting
-# __WEBHOOK_PORT__ with WEBHOOK_PORT from .env (default 9000). Keeping the port
-# in one place avoids the Traefik 502 you get when .env and this URL drift.
+# __WEBHOOK_PORT__ (WEBHOOK_PORT from .env, default 9000) and __DOMAIN__
+# (DOMAIN from .env). Traefik's file provider does NOT expand ${DOMAIN}, so the
+# hostname must be baked in here at install time.
 #
-# Dynamic Traefik configuration exposing the host-side parr-webhook daemon
-# under /webhook/* on the same Traefik instance/hostname as the rest of parr.
+# Exposes the host-side parr-webhook daemon over HTTPS at
+# https://webhook.__DOMAIN__/webhook/<id>, using the same wildcard cert as the
+# rest of the stack. Plain HTTP on that host redirects to HTTPS so the
+# X-Auth-Token (which can reboot/power off the host) is never sent in cleartext.
 #
 # The webhook daemon listens on the *host* (not in a container). We reach it
 # from inside the Traefik container via the Docker bridge gateway, mapped to
 # host.docker.internal using `extra_hosts: host-gateway` on the Traefik service
-# in docker-compose.yml.
-#
-# The webhook daemon is configured with `-urlprefix webhook` so it serves hooks
-# at /webhook/<id>. The path is passed through unchanged from Traefik (no
-# stripPrefix needed).
+# in docker-compose.yml. It runs with `-urlprefix webhook` so it serves hooks at
+# /webhook/<id>; the path is passed through unchanged (no stripPrefix).
 
 http:
   routers:
     parr-webhook:
-      rule: "PathPrefix(`/webhook`)"
+      rule: "Host(`webhook.__DOMAIN__`) && PathPrefix(`/webhook`)"
+      entryPoints:
+        - websecure
+      tls: true
+      service: parr-webhook
+    parr-webhook-http:
+      rule: "Host(`webhook.__DOMAIN__`) && PathPrefix(`/webhook`)"
       entryPoints:
         - web
+      middlewares:
+        - redirect-https@file
       service: parr-webhook
 
   services:

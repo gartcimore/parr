@@ -44,6 +44,7 @@ WEBHOOK_PORT="$(grep -E '^WEBHOOK_PORT=' "$ENV_FILE" | head -1 | cut -d= -f2- | 
 WEBHOOK_PORT="${WEBHOOK_PORT:-9000}"
 WEBHOOK_IP="$(grep -E '^WEBHOOK_IP=' "$ENV_FILE" | head -1 | cut -d= -f2- | tr -d '"'"'")"
 WEBHOOK_IP="${WEBHOOK_IP:-0.0.0.0}"
+DOMAIN="$(grep -E '^DOMAIN=' "$ENV_FILE" | head -1 | cut -d= -f2- | tr -d '"'"'")"
 
 if [ -z "$WEBHOOK_TOKEN" ] || [ "$WEBHOOK_TOKEN" = "your_webhook_token_here" ]; then
     fail "WEBHOOK_TOKEN is missing or unset in $ENV_FILE"
@@ -128,10 +129,15 @@ fi
 info "==> rendering traefik webhook route"
 TRAEFIK_WEBHOOK_TEMPLATE="$PARR_DIR/traefik/dynamic/webhook.yml.template"
 TRAEFIK_WEBHOOK_OUT="$PARR_DIR/traefik/dynamic/webhook.yml"
+if [ -z "$DOMAIN" ]; then
+    warn "    DOMAIN not set in $ENV_FILE; the webhook HTTPS route needs it."
+    warn "    Set DOMAIN in .env and re-run, or the rendered host will be wrong."
+fi
 if [ -f "$TRAEFIK_WEBHOOK_TEMPLATE" ]; then
-    sed "s|__WEBHOOK_PORT__|${WEBHOOK_PORT}|g" \
+    sed -e "s|__WEBHOOK_PORT__|${WEBHOOK_PORT}|g" \
+        -e "s|__DOMAIN__|${DOMAIN}|g" \
         "$TRAEFIK_WEBHOOK_TEMPLATE" > "$TRAEFIK_WEBHOOK_OUT"
-    ok "    wrote $TRAEFIK_WEBHOOK_OUT (port $WEBHOOK_PORT)"
+    ok "    wrote $TRAEFIK_WEBHOOK_OUT (host webhook.${DOMAIN}, port $WEBHOOK_PORT)"
 else
     warn "    $TRAEFIK_WEBHOOK_TEMPLATE not found; leaving existing webhook.yml as-is"
 fi
