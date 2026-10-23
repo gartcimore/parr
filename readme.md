@@ -139,9 +139,68 @@ Once configured, access your services at:
 - **Seerr**: `http://your-hostname.local/seerr` ❌ *No reverse proxy support*
 - **Homarr**: `http://your-hostname.local/homarr` ❌ *Routing issues*
 - **qBittorrent**: `http://your-hostname.local/qbittorrent` ✅
+- **Calibre-Web-Automated** (ebooks): `https://books.<DOMAIN>` ✅
 - **parr-webhook** (host actions): `http://your-hostname.local/webhook/<action>` ✅ *POST only, requires `X-Auth-Token` header*
 
 **Note**: Services marked with ❌ or ⚠️ may require additional configuration or have known issues with reverse proxy routing.
+
+## Ebooks (Calibre-Web-Automated)
+
+[Calibre-Web-Automated](https://github.com/crocodilestick/Calibre-Web-Automated)
+(CWA) manages and serves the ebook library and **auto-imports** anything dropped
+into its ingest folder. It bundles the Calibre engine, so no separate Calibre
+container is needed. (Readarr is retired; CWA is the maintained choice for the
+"organize + auto-import" job — it does not monitor authors / grab releases.)
+
+Served at `https://books.${DOMAIN}`. Default login `admin` / `admin123` —
+**change it immediately**, and enable uploads under Settings → Basic
+Configuration → Feature Configuration.
+
+### Volumes (all on the Ymir NFS share)
+
+| Container path | Host path | Purpose |
+|----------------|-----------|---------|
+| `/config` | `${DOCKER_CONFIG_DIR}/calibre-web-automated` | app config |
+| `/cwa-book-ingest` | `${DATA_DIR}/downloads/ebooks-ingest` | drop zone; files here are imported then **DELETED** |
+| `/calibre-library` | `${DATA_DIR}/media/ebooks` | the Calibre library (`metadata.db` + books) |
+
+`NETWORK_SHARE_MODE=true` is set because the library is on NFS (disables SQLite
+WAL to avoid locking; CWA uses polling watchers instead of inotify).
+
+### Auto-import from qBittorrent
+
+qBittorrent downloads ebooks under the `ebooks` **category** (save path
+`downloads/ebooks`), kept **separate** from the ingest folder so seeding is never
+disturbed. On completion, qBittorrent copies the finished files into
+`downloads/ebooks-ingest`, where CWA picks them up.
+
+This is configured in the **qBittorrent WebUI** (not in this repo):
+**Options → Downloads → "Run external program on torrent completion"**:
+
+```
+/bin/sh -c 'test "%L" = ebooks && cp -rn "%F" /downloads/ebooks-ingest/'
+```
+
+- `%L` = category (copies only for the `ebooks` category)
+- `%F` = completed content path; `cp -rn` copies (originals keep seeding) and
+  won't clobber existing files
+- Only fires for torrents that **complete while the hook is active** — it does
+  not retroactively copy already-finished torrents.
+
+### One-time backfill (existing torrents)
+
+For ebooks that finished before the hook was set up, copy them once (leaves
+originals seeding; CWA imports then removes the copies):
+
+```bash
+docker exec qbittorrent /bin/sh -c 'cp -rn /downloads/ebooks/* /downloads/ebooks-ingest/'
+docker compose logs -f calibre-web-automated   # watch the import
+```
+
+A bulk `cp *` also sweeps in non-book junk (`.DS_Store`, Synology `@eaDir`,
+stray `.zip`s). CWA ignores/skips those but won't delete them, so clean leftovers
+from `ebooks-ingest` afterwards (never touch `downloads/ebooks` — it's seeding).
+Zip archives are not extracted by CWA; unzip into ingest manually if needed.
 
 ## Host Actions from Homarr (parr-webhook)
 
