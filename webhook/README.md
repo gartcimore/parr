@@ -1,7 +1,9 @@
 # parr-webhook
 
 Host-side webhook daemon that exposes a few host-level actions (reboot, shutdown,
-restart the parr docker stack) so a Homarr tile can trigger them with one click.
+restart the Docker daemon) so a Homarr tile can trigger them with one click.
+These are things Homarr can't do itself — it can restart individual containers,
+but not reboot the host or bounce the Docker engine.
 
 Runs on the host, not in a container. A container cannot reboot its host without
 becoming effectively root on the box, which is worse than this.
@@ -27,7 +29,7 @@ private and the daemon on the LAN.
 | --------------- | ------------------------------------------------------ | ----------------------------------------------------- |
 | `reboot`        | Reboots the host (3s delay so the HTTP reply lands)    | `/sbin/reboot`                                        |
 | `shutdown`      | Powers off the host (3s delay)                         | `/sbin/poweroff`                                      |
-| `restart-docker`| Restarts the parr docker compose stack                 | `docker compose -f <parr>/docker-compose.yml restart` |
+| `restart-docker`| Restarts the Docker **daemon** on the host (all containers) | `systemctl restart docker`                        |
 
 ## Install
 
@@ -110,11 +112,9 @@ your Traefik dynamic config or `.env`.
   Access should come through Traefik, not directly to the port.
 - `/etc/parr-webhook/hooks.json` is mode 0640, owned by `root:parr-webhook`.
 - The `parr-webhook` user has nologin shell and no home directory.
-- Sudoers grants exactly three commands: `/sbin/reboot`, `/sbin/poweroff`, and
-  `docker compose -f <this stack's compose file> restart`. The docker command is
-  pinned to the exact compose path — **no wildcard** — because a sudo wildcard on
-  `docker compose` is effectively unrestricted root (an attacker could point
-  `-f` at a compose file that mounts the host filesystem).
+- Sudoers grants exactly three fully-specified commands: `/sbin/reboot`,
+  `/sbin/poweroff`, and `systemctl restart docker`. No wildcards, so the grant
+  can't be widened by argument injection.
 - The systemd unit is hardened (`ProtectSystem`, `ProtectHome`, `PrivateTmp`,
   `RestrictAddressFamilies`, `MemoryDenyWriteExecute`, etc.). `NoNewPrivileges`
   is intentionally left off because the action scripts need sudo.

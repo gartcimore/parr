@@ -2,16 +2,12 @@
 # Grants the parr-webhook service user permission to run exactly the commands
 # needed by the action scripts. Nothing else.
 #
-# This file is installed at /etc/sudoers.d/parr-webhook by install.sh, which
-# first substitutes the compose-directory placeholder below with the real path
-# and then validates the result with `visudo -cf`.
+# This file is installed at /etc/sudoers.d/parr-webhook by install.sh and
+# validated with `visudo -cf` before being put in place.
 #
-# NOTE: the docker command is pinned to the exact compose file. We deliberately
-# do NOT use a wildcard (e.g. `docker compose -f * restart`): a sudo wildcard on
-# `docker compose` is effectively unrestricted root, since an attacker could
-# point -f at a malicious compose file that mounts the host filesystem. Pinning
-# the path keeps this grant to "restart this one stack" and nothing more.
+# Each grant is a fully-specified command with no wildcards. restart-docker
+# restarts the Docker daemon (host-level), which Homarr cannot do on its own.
 
 parr-webhook ALL=(root) NOPASSWD: /sbin/reboot
 parr-webhook ALL=(root) NOPASSWD: /sbin/poweroff
-parr-webhook ALL=(root) NOPASSWD: /usr/bin/docker compose -f __PARR_COMPOSE_DIR__/docker-compose.yml restart
+parr-webhook ALL=(root) NOPASSWD: /usr/bin/systemctl restart docker

@@ -101,21 +101,15 @@ ok "    wrote $HOOKS_FILE (mode 0640)"
 
 # ---------- step 4: action scripts ----------
 info "==> installing action scripts to $BIN_DIR"
-install -m 0755 "$SCRIPT_DIR/scripts/reboot.sh"   "$BIN_DIR/parr-webhook-reboot"
-install -m 0755 "$SCRIPT_DIR/scripts/shutdown.sh" "$BIN_DIR/parr-webhook-shutdown"
-
-# restart-docker needs the compose dir templated in
-sed "s|__PARR_COMPOSE_DIR__|${PARR_DIR}|g" \
-    "$SCRIPT_DIR/scripts/restart-docker.sh" > "$BIN_DIR/parr-webhook-restart-docker"
-chmod 0755 "$BIN_DIR/parr-webhook-restart-docker"
+install -m 0755 "$SCRIPT_DIR/scripts/reboot.sh"         "$BIN_DIR/parr-webhook-reboot"
+install -m 0755 "$SCRIPT_DIR/scripts/shutdown.sh"      "$BIN_DIR/parr-webhook-shutdown"
+install -m 0755 "$SCRIPT_DIR/scripts/restart-docker.sh" "$BIN_DIR/parr-webhook-restart-docker"
 ok "    parr-webhook-reboot, parr-webhook-shutdown, parr-webhook-restart-docker"
 
 # ---------- step 5: sudoers drop-in ----------
 info "==> installing sudoers drop-in"
-# Template the real compose path into the pinned docker rule so the grant is
-# restricted to this one stack (no wildcard). Must match restart-docker.sh.
-sed "s|__PARR_COMPOSE_DIR__|${PARR_DIR}|g" \
-    "$SCRIPT_DIR/sudoers/parr-webhook" > "$SUDOERS_TMP"
+# All three grants are fully-specified commands with no wildcards or templating.
+cp "$SCRIPT_DIR/sudoers/parr-webhook" "$SUDOERS_TMP"
 chmod 0440 "$SUDOERS_TMP"
 if visudo -cf "$SUDOERS_TMP" >/dev/null; then
     install -m 0440 -o root -g root "$SUDOERS_TMP" "$SUDOERS_FILE"

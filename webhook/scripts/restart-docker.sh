@@ -1,20 +1,22 @@
 #!/bin/bash
-# Restart the parr docker compose stack.
+# Restart the Docker daemon on the host.
 #
-# PARR_COMPOSE_DIR is templated in by install.sh at install time so we know
-# which compose file to target without parsing .env at runtime.
+# This restarts the docker.service (the whole engine), not a single compose
+# project — Homarr's Docker integration can already start/stop/restart
+# individual containers, but it cannot bounce the daemon itself. That host-level
+# action is what this webhook provides.
 #
-# The `docker compose -f <path> restart` invocation below must match the
-# pinned command in webhook/sudoers/parr-webhook exactly, or sudo will reject
-# it. Do not change one without the other.
+# NOTE: restarting dockerd stops and restarts EVERY container on the host, not
+# just the parr stack. The webhook daemon runs on the host (systemd), not in a
+# container, so it survives the restart and can still return its HTTP response.
+#
+# The `systemctl restart docker` invocation must match the pinned command in
+# webhook/sudoers/parr-webhook exactly, or sudo will reject it. Do not change
+# one without the other.
 set -e
 
-COMPOSE_DIR="__PARR_COMPOSE_DIR__"
-COMPOSE_FILE="$COMPOSE_DIR/docker-compose.yml"
-
-if [ ! -f "$COMPOSE_FILE" ]; then
-    echo "compose file missing at $COMPOSE_FILE" >&2
-    exit 1
-fi
-
-sudo /usr/bin/docker compose -f "$COMPOSE_FILE" restart
+# Run in the background with a tiny delay so the HTTP response reaches the
+# caller before the docker restart tears down the Traefik container in its path.
+( sleep 2 && sudo /usr/bin/systemctl restart docker ) >/dev/null 2>&1 &
+disown
+exit 0
