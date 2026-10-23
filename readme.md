@@ -465,3 +465,27 @@ To make sure these packages don't upgrade, run:
 sudo apt-mark hold docker-compose-plugin=2.32.4-1~debian.12~bookworm docker-ce-cli=5:27.5.1-1~debian.12~bookworm docker-buildx-plugin=0.20.0-1~debian.12~bookworm docker-ce=5:27.5.1-1~debian.12~bookworm docker-ce-rootless-extras=5:27.5.1-1~debian.12~bookworm
 
 If you ever want them to start upgrading again, run the same command with unhold instead of hold 
+
+## Adding a new service (maintainer checklist)
+
+When adding a service to `docker-compose.yml`, keep the surrounding tooling in sync:
+
+1. **Service block** — add it with `PUID/PGID/TZ`, a `${DOCKER_CONFIG_DIR}/<name>:/config`
+   mount, and (if it should be reachable) Traefik labels. Name the Traefik
+   router/service **the same as the compose service name** — the tests grep for
+   `traefik.http.routers.<service>.rule`, so a mismatch makes them miss it.
+2. **Traefik routes** — path route (`Host(${HOSTNAME}) && PathPrefix(/x)`) plus a
+   hostname HTTPS pair (`<x>.${DOMAIN}` on `websecure` + an `-http` redirect).
+3. **DNS** — add a UniFi Local DNS A record `<x>.kornoglab.fr → 192.168.0.20`
+   (see the kornogHosted repo README).
+4. **Tests** (`tests/test-docker-compose.sh`) — add the service to the relevant
+   arrays: `required_services` always; `services_with_web` if it has Traefik
+   labels; `services_with_config` if it has a `${DOCKER_CONFIG_DIR}` mount. Only
+   add to `arr_services` if it mounts `/data` (that test asserts a data mount).
+5. **Backup** — automatic. `backup.sh` discovers any `${DOCKER_CONFIG_DIR}/<name>`
+   mount from the compose file, so config is backed up with no change. NOTE: data
+   under `${DATA_DIR}` (e.g. a Calibre library's `metadata.db`) is **not** in this
+   backup — protect it via the NAS if needed.
+6. **Update** — automatic. `update.sh` runs `docker compose pull`/`up -d` across
+   the whole stack; no per-service change.
+7. **Homarr** — optionally add a tile/integration.

@@ -483,19 +483,19 @@ services:
       - traefik
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.calibre.rule=Host(`${HOSTNAME}`) && PathPrefix(`/calibre`)"
-      - "traefik.http.routers.calibre.entrypoints=web"
-      - "traefik.http.services.calibre.loadbalancer.server.port=8083"
+      - "traefik.http.routers.calibre-web-automated.rule=Host(`${HOSTNAME}`) && PathPrefix(`/calibre`)"
+      - "traefik.http.routers.calibre-web-automated.entrypoints=web"
+      - "traefik.http.services.calibre-web-automated.loadbalancer.server.port=8083"
       - "traefik.http.middlewares.calibre-stripprefix.stripprefix.prefixes=/calibre"
-      - "traefik.http.routers.calibre.middlewares=calibre-stripprefix"
+      - "traefik.http.routers.calibre-web-automated.middlewares=calibre-stripprefix"
       # Hostname-based HTTPS route: https://books.${DOMAIN}
-      - "traefik.http.routers.calibre-tls.rule=Host(`books.${DOMAIN}`)"
-      - "traefik.http.routers.calibre-tls.entrypoints=websecure"
-      - "traefik.http.routers.calibre-tls.tls=true"
-      - "traefik.http.routers.calibre-tls.service=calibre"
-      - "traefik.http.routers.calibre-http.rule=Host(`books.${DOMAIN}`)"
-      - "traefik.http.routers.calibre-http.entrypoints=web"
-      - "traefik.http.routers.calibre-http.middlewares=redirect-https@file"
+      - "traefik.http.routers.calibre-web-automated-tls.rule=Host(`books.${DOMAIN}`)"
+      - "traefik.http.routers.calibre-web-automated-tls.entrypoints=websecure"
+      - "traefik.http.routers.calibre-web-automated-tls.tls=true"
+      - "traefik.http.routers.calibre-web-automated-tls.service=calibre-web-automated"
+      - "traefik.http.routers.calibre-web-automated-http.rule=Host(`books.${DOMAIN}`)"
+      - "traefik.http.routers.calibre-web-automated-http.entrypoints=web"
+      - "traefik.http.routers.calibre-web-automated-http.middlewares=redirect-https@file"
     restart: unless-stopped
 
 ############################

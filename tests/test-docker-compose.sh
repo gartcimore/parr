@@ -79,6 +79,7 @@ test_required_services() {
         "homarr"
         "gluetun"
         "qbittorrent"
+        "calibre-web-automated"
     )
     
     local services=$($COMPOSE_CMD config --services 2>/dev/null)
@@ -130,7 +131,7 @@ test_network_config() {
 test_traefik_labels() {
     print_test "Validating Traefik labels on services"
     
-    local services_with_web=("prowlarr" "radarr" "sonarr" "bazarr" "lidarr" "jellyfin" "seerr" "homarr")
+    local services_with_web=("prowlarr" "radarr" "sonarr" "bazarr" "lidarr" "jellyfin" "seerr" "homarr" "calibre-web-automated")
     local config=$($COMPOSE_CMD config 2>/dev/null)
     
     for service in "${services_with_web[@]}"; do
@@ -160,7 +161,7 @@ test_volume_mounts() {
     # Check that services have proper config volume mounts
     # Window must be large enough to cover labels (compose config emits keys alphabetically,
     # so 'volumes' appears after 'labels' which can be lengthy for Traefik-routed services).
-    local services_with_config=("prowlarr" "radarr" "sonarr" "bazarr" "lidarr" "jellyfin" "seerr" "homarr" "gluetun" "qbittorrent")
+    local services_with_config=("prowlarr" "radarr" "sonarr" "bazarr" "lidarr" "jellyfin" "seerr" "homarr" "gluetun" "qbittorrent" "calibre-web-automated")
     
     for service in "${services_with_config[@]}"; do
         if ! echo "$config" | grep -A 80 "${service}:" | grep -q "DOCKER_CONFIG_DIR"; then
