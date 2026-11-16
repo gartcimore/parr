@@ -51,9 +51,9 @@ get_stack_problems() {
     running=$(docker compose ps --services --filter "status=running" 2>/dev/null | sort)
     missing=$(comm -23 <(echo "$expected") <(echo "$running") | tr '\n' ' ')
     [[ -n "${missing// /}" ]] && echo "not running: ${missing}"
-    unhealthy=$(docker compose ps --format json 2>/dev/null \
-        | jq -r 'if type == "array" then .[] else . end | select(.Health == "unhealthy") | .Name' 2>/dev/null \
-        | tr '\n' ' ')
+    unhealthy=$(docker compose ps -q 2>/dev/null \
+        | xargs -r docker inspect --format '{{.Name}} {{if .State.Health}}{{.State.Health.Status}}{{end}}' 2>/dev/null \
+        | awk '$2 == "unhealthy" { sub("^/", "", $1); print $1 }' | tr '\n' ' ')
     [[ -n "${unhealthy// /}" ]] && echo "unhealthy: ${unhealthy}"
     return 0
 }
