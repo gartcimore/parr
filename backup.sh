@@ -112,6 +112,21 @@ get_config_folders_from_volumes() {
         return 1
     fi
     
+    # Prefer the resolved config: it only contains services of enabled Compose
+    # profiles (COMPOSE_PROFILES), so e.g. a disabled Jellyfin is not looked for.
+    local resolved
+    if command -v jq >/dev/null 2>&1 \
+        && resolved=$(docker compose config --format json 2>/dev/null) && [[ -n "$resolved" ]]; then
+        # CERTS_DIR (TLS private key) is never part of the config backup, even when
+        # it lives under DOCKER_CONFIG_DIR. This matches the text parsing below.
+        printf '%s' "$resolved" | jq -r --arg base "${DOCKER_CONFIG_DIR%/}/" --arg certs "${CERTS_DIR%/}" \
+            '.services[].volumes[]? | select(.type == "bind") | .source
+             | select(startswith($base))
+             | select($certs == "" or (. != $certs and (startswith($certs + "/") | not)))
+             | .[($base | length):]' | sort -u
+        return 0
+    fi
+    print_warning "Could not resolve the compose config (docker compose or jq missing); parsing docker-compose.yml, services in disabled profiles are not skipped" >&2
     local config_folders=()
     
     # Parse docker-compose.yml for volume mounts using DOCKER_CONFIG_DIR
@@ -147,6 +162,7 @@ get_existing_config_folders() {
 }
 
 # Create the backup
+print_skipped_profile_services
 print_status "Analyzing docker-compose.yml for DOCKER_CONFIG_DIR volume mounts..."
 
 # Get list of services with existing config folders

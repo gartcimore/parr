@@ -39,6 +39,10 @@ get_compose_cmd() {
     fi
 }
 
+# Jellyfin is an optional Compose profile; enable it so that the checks below
+# cover every service. test_jellyfin_profile_is_optional checks the opt-out.
+export COMPOSE_PROFILES=jellyfin
+
 # Get the compose command
 COMPOSE_CMD=$(get_compose_cmd)
 
@@ -254,6 +258,20 @@ test_security_config() {
 }
 
 # Main test execution
+# Test 9: Jellyfin is an optional Compose profile
+test_jellyfin_profile_is_optional() {
+    print_test "Checking Jellyfin is skipped when its profile is disabled"
+    if COMPOSE_PROFILES= $COMPOSE_CMD config --services 2>/dev/null | grep -q '^jellyfin$'; then
+        print_fail "jellyfin is active without the jellyfin profile"
+        return 1
+    fi
+    if ! COMPOSE_PROFILES=jellyfin $COMPOSE_CMD config --services 2>/dev/null | grep -q '^jellyfin$'; then
+        print_fail "jellyfin is missing with COMPOSE_PROFILES=jellyfin"
+        return 1
+    fi
+    print_pass "jellyfin is only active with COMPOSE_PROFILES=jellyfin"
+}
+
 main() {
     echo "========================================="
     echo "Docker Compose Configuration Tests"
@@ -292,6 +310,7 @@ main() {
         "test_env_variables"
         "test_service_dependencies"
         "test_security_config"
+        "test_jellyfin_profile_is_optional"
     )
     
     for test_func in "${test_functions[@]}"; do

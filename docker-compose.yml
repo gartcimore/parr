@@ -248,11 +248,52 @@ services:
     restart: unless-stopped
 
 ############################
-# JELLYFIN
+# JELLYFIN	
 ############################
-# Moved to its own LXC guest on orisa (CT 122, 192.168.0.22), 2026-11-16.
-# See kornogHosted/jellyfin and kornogHosted/docs/orisa-proxmox-setup.md.
-# The old config in ${DOCKER_CONFIG_DIR}/jellyfin is kept as a rollback copy.
+
+  jellyfin:
+    image: lscr.io/linuxserver/jellyfin:latest
+    container_name: jellyfin
+    # Optional service: only started/pulled when "jellyfin" is listed in
+    # COMPOSE_PROFILES (.env). Leave it out to run Jellyfin on another host.
+    profiles: ["jellyfin"]
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=${TZ}
+      - JELLYFIN_PublishedServerUrl=http://${HOSTNAME}/jellyfin
+    volumes:
+      - ${DOCKER_CONFIG_DIR}/jellyfin:/config
+      - ${DATA_DIR}/media:/mediaYmir
+      - /mnt/data/media:/mediaDrogo
+    ports:
+      - 8096:8096
+      - 8920:8920 #optional
+      - 7359:7359/udp #optional
+      - 1900:1900/udp #optional
+    networks:
+      - traefik
+    labels:
+      - "traefik.enable=true"
+      # Path-based HTTP route: http://${HOSTNAME}/jellyfin
+      - "traefik.http.routers.jellyfin.rule=Host(`${HOSTNAME}`) && (PathPrefix(`/jellyfin`))"
+      - "traefik.http.routers.jellyfin.entrypoints=web"
+      - "traefik.http.services.jellyfin.loadbalancer.server.port=8096"
+      - "traefik.http.middlewares.jellyfin-headers.headers.customrequestheaders.X-Forwarded-Proto=http"
+      - "traefik.http.middlewares.jellyfin-headers.headers.customrequestheaders.X-Forwarded-Host=${HOSTNAME}"
+      # - "traefik.http.middlewares.jellyfin-headers.headers.customrequestheaders.X-Forwarded-For=127.0.0.1"
+      - "traefik.http.middlewares.jellyfin-headers.headers.customrequestheaders.X-Forwarded-Prefix=/jellyfin"
+      - "traefik.http.routers.jellyfin.middlewares=jellyfin-headers"
+      # Hostname-based HTTPS route: https://jellyfin.${DOMAIN} (uses wildcard cert from acme)
+      - "traefik.http.routers.jellyfin-tls.rule=Host(`jellyfin.${DOMAIN}`)"
+      - "traefik.http.routers.jellyfin-tls.entrypoints=websecure"
+      - "traefik.http.routers.jellyfin-tls.tls=true"
+      - "traefik.http.routers.jellyfin-tls.service=jellyfin"
+      # Redirect plain HTTP on the hostname to HTTPS
+      - "traefik.http.routers.jellyfin-http.rule=Host(`jellyfin.${DOMAIN}`)"
+      - "traefik.http.routers.jellyfin-http.entrypoints=web"
+      - "traefik.http.routers.jellyfin-http.middlewares=redirect-https@file"
+    restart: unless-stopped
 
 ############################
 # SEERR

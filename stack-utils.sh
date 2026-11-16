@@ -16,6 +16,28 @@ fi
 STACK_SERVICE_WAS_RUNNING=false
 STACK_COMPOSE_WAS_RUNNING=false
 
+# Print the services that are defined in docker-compose.yml but inactive because
+# their Compose profile is not enabled (COMPOSE_PROFILES in .env), one per line.
+# `docker compose pull`, `up` and `config` skip these on their own; this is only
+# used to tell the user what is being skipped.
+get_skipped_profile_services() {
+    local all active
+    all=$(docker compose --profile '*' config --services 2>/dev/null | sort)
+    active=$(docker compose config --services 2>/dev/null | sort)
+    [[ -z "$all" || -z "$active" ]] && return 0
+    comm -23 <(echo "$all") <(echo "$active")
+}
+
+# Print a one-line notice when services are skipped because of disabled profiles.
+print_skipped_profile_services() {
+    local skipped
+    skipped=$(get_skipped_profile_services | tr '\n' ' ')
+    if [[ -n "${skipped// /}" ]]; then
+        echo -e "${YELLOW}Skipping services in disabled Compose profiles: ${skipped}${NC}"
+        echo -e "${YELLOW}(enable them with COMPOSE_PROFILES in .env)${NC}"
+    fi
+}
+
 # Function to check if stack is running as a service
 is_service_running() {
     local service_name="${1:-arr.service}"

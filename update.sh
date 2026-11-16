@@ -47,6 +47,7 @@ load_env_file ".env"
 INSTALL_TYPE=$(get_install_type)
 
 echo -e "${BLUE}Installation type: $INSTALL_TYPE${NC}"
+print_skipped_profile_services
 echo ""
 
 # Stack management functions are now in stack-utils.sh
