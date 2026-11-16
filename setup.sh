@@ -389,9 +389,14 @@ if [ "$NEW_INSTALL_TYPE" = "service" ]; then
 Description=Arr stack
 Requires=docker.service
 After=docker.service
+# gluetun can need several seconds to find a working VPN server. Retry slowly
+# and give up only after many attempts, instead of 6 tries in 5 seconds.
+StartLimitIntervalSec=300
+StartLimitBurst=10
 
 [Service]
 Restart=always
+RestartSec=20
 WorkingDirectory=$CURRENT_DIR
 ExecStart=/usr/bin/docker compose up
 ExecStop=/usr/bin/docker compose down

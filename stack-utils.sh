@@ -38,6 +38,26 @@ print_skipped_profile_services() {
     fi
 }
 
+# Print what is wrong with the stack: services of the enabled profiles that are
+# not running, and containers that report unhealthy. Prints nothing when it is
+# fully up. Always returns 0.
+get_stack_problems() {
+    local expected running missing unhealthy
+    expected=$(docker compose config --services 2>/dev/null | sort)
+    if [[ -z "$expected" ]]; then
+        echo "cannot read the compose config"
+        return 0
+    fi
+    running=$(docker compose ps --services --filter "status=running" 2>/dev/null | sort)
+    missing=$(comm -23 <(echo "$expected") <(echo "$running") | tr '\n' ' ')
+    [[ -n "${missing// /}" ]] && echo "not running: ${missing}"
+    unhealthy=$(docker compose ps --format json 2>/dev/null \
+        | jq -r 'if type == "array" then .[] else . end | select(.Health == "unhealthy") | .Name' 2>/dev/null \
+        | tr '\n' ' ')
+    [[ -n "${unhealthy// /}" ]] && echo "unhealthy: ${unhealthy}"
+    return 0
+}
+
 # Function to check if stack is running as a service
 is_service_running() {
     local service_name="${1:-arr.service}"
@@ -192,11 +212,13 @@ wait_for_stack_health() {
         local install_type=$(get_install_type)
         
         if [[ "$install_type" == "service" ]]; then
-            if is_service_running "$service_name"; then
+            local problems
+            problems=$(get_stack_problems)
+            if is_service_running "$service_name" && [[ -z "$problems" ]]; then
                 echo -e "${GREEN}Service is running and healthy!${NC}"
                 return 0
             else
-                echo -e "${YELLOW}Service not yet ready${NC}"
+                echo -e "${YELLOW}Service not yet ready ${problems}${NC}"
             fi
         else
             # Check if any containers are unhealthy

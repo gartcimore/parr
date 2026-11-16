@@ -373,6 +373,15 @@ services:
   gluetun:
     image: qmcgaw/gluetun:v3
     container_name: gluetun
+    healthcheck:
+      # Same command as the image, but a longer start_period: failures during it
+      # do not count, so a slow first VPN server does not mark gluetun unhealthy
+      # and make `depends_on: service_healthy` (qbittorrent) fail the whole stack.
+      test: ["CMD-SHELL", "/gluetun-entrypoint healthcheck"]
+      interval: 5s
+      timeout: 5s
+      start_period: 90s
+      retries: 3
     cap_add:
       - NET_ADMIN
     devices:
